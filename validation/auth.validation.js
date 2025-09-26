@@ -74,7 +74,7 @@ export const validateRegistration = [
 
   body("role")
     .optional()
-    .isIn(["CUSTOMER", "RESTAURANT", "DELIVERY", "ADMIN"])
+    .isIn(["PATIENT" , "DOCTOR" , "ADMIN" ])
     .withMessage("Invalid role specified"),
 
   validateRequest,

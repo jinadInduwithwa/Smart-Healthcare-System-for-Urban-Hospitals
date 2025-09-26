@@ -61,8 +61,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["CUSTOMER", "RESTAURANT", "DELIVERY", "ADMIN"],
-      default: "CUSTOMER",
+      enum: ["PATIENT" , "DOCTOR" , "ADMIN" ],
+      default: "PATIENT",
     },
     isVerified: {
       type: Boolean,
