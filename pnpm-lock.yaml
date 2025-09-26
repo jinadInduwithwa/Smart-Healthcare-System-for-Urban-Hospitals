@@ -38,6 +38,9 @@ importers:
       morgan:
         specifier: ^1.10.0
         version: 1.10.1
+      nodemailer:
+        specifier: ^7.0.6
+        version: 7.0.6
       punycode:
         specifier: ^2.3.1
         version: 2.3.1
@@ -1337,6 +1340,10 @@ packages:
 
   node-releases@2.0.21:
     resolution: {integrity: sha512-5b0pgg78U3hwXkCM8Z9b2FJdPZlr9Psr9V2gQPESdGHqbntyFJKFW4r5TeWGFzafGY3hzs1JC62VEQMbl1JFkw==}
+
+  nodemailer@7.0.6:
+    resolution: {integrity: sha512-F44uVzgwo49xboqbFgBGkRaiMgtoBrBEWCVincJPK9+S9Adkzt/wXCLKbf7dxucmxfTI5gHGB+bEmdyzN6QKjw==}
+    engines: {node: '>=6.0.0'}
 
   nodemon@2.0.22:
     resolution: {integrity: sha512-B8YqaKMmyuCO7BowF1Z1/mkPqLk6cs/l63Ojtd6otKjMx47Dq1utxfRxcavH1I7VSaL8n5BUaoutadnsX3AAVQ==}
@@ -3430,6 +3437,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.21: {}
+
+  nodemailer@7.0.6: {}
 
   nodemon@2.0.22:
     dependencies:

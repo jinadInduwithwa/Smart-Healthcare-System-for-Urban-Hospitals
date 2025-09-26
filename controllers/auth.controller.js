@@ -1,9 +1,6 @@
-// auth-service/src/controllers/auth.controller.js
-import { AuthService } from "../services/auth.service.js";
-import jwt from "jsonwebtoken";
-import { User } from "../models/user.model.js";
-import logger from "../utils/logger.js";
-import axios from "axios";
+import { AuthService } from '../services/auth.service.js';
+import { User } from '../models/user.model.js';
+import logger from '../utils/logger.js';
 
 export class AuthController {
   constructor() {
@@ -19,6 +16,7 @@ export class AuthController {
     this.changePassword = this.changePassword.bind(this);
     this.logout = this.logout.bind(this);
     this.verifyAuth = this.verifyAuth.bind(this);
+    this.sendWelcomeEmail = this.sendWelcomeEmail.bind(this);
     this.getAllUsers = this.getAllUsers.bind(this);
     this.getUserById = this.getUserById.bind(this);
     this.updateUser = this.updateUser.bind(this);
@@ -29,17 +27,11 @@ export class AuthController {
 
   async register(req, res) {
     try {
-      const {
-        email,
-        password,
-        role,
-        firstName,
-        lastName,
-        address,
-        vehicleType,
-        vehicleNumber,
-      } = req.body;
-      console.log("Registration request received for:", email);
+      const { email, password, role, firstName, lastName, address } = req.body;
+      if (!email || !password) {
+        logger.warn('Registration failed: Missing email or password', { email });
+        return res.status(400).json({ status: 'error', message: 'Email and password are required' });
+      }
 
       const { user } = await this.authService.register({
         email,
@@ -47,381 +39,369 @@ export class AuthController {
         firstName,
         lastName,
         address,
-        role: role || "CUSTOMER",
+        role: role || 'CUSTOMER',
       });
 
-      // If registering as a driver, create driver profile
-      if (role === "DELIVERY") {
-        try {
-          // Call driver service to create driver profile
-          await axios.post(
-            `${process.env.DRIVER_SERVICE_URL}/api/drivers/register`,
-            {
-              userId: user._id,
-              vehicleType,
-              vehicleNumber,
-              location: [0, 0], // Default location
-            }
-          );
-        } catch (error) {
-          // If driver profile creation fails, delete the user
-          await User.findByIdAndDelete(user._id);
-          throw new Error("Failed to create driver profile");
-        }
-      }
+      const token = this.authService.generateToken(user);
 
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-      );
-
-      console.log("Registration successful for:", email);
+      logger.info('Registration successful:', { email });
       res.status(201).json({
-        message:
-          "User registered successfully. Please check your email for verification code.",
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          role: user.role,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          address: user.address,
-          isVerified: user.isVerified,
+        status: 'success',
+        message: 'User registered successfully. Please check your email for verification code.',
+        data: {
+          token,
+          user: {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            address: user.address,
+            isVerified: user.isVerified,
+          },
         },
       });
     } catch (error) {
-      console.error("Registration error:", error.message);
-      console.error("Error stack trace:", error.stack); // Log the full stack trace
-      if (error.name === "ValidationError") {
-        console.error(
-          "Validation errors:",
-          Object.values(error.errors).map((err) => err.message)
-        );
+      logger.error('Registration error:', { error: error.message, stack: error.stack });
+      if (error.name === 'ValidationError') {
         return res.status(400).json({
-          message: "Invalid data",
+          status: 'error',
+          message: 'Invalid data',
           errors: Object.values(error.errors).map((err) => err.message),
         });
       }
-      if (error.isOperational) {
-        console.error("Operational error:", error.message);
-        return res.status(error.statusCode).json({
-          message: error.message,
-        });
-      }
-      console.error("Server error:", error.message);
-      res.status(500).json({ message: "Server error" });
+      res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message || 'Server error',
+      });
     }
   }
 
   async login(req, res) {
     try {
       const { email, password } = req.body;
-      console.log("Login attempt for:", email);
-
-      // Find user by email
-      const user = await User.findOne({ email });
-      console.log("User found:", user ? "Yes" : "No");
-
-      if (!user) {
-        console.log("Login failed: User not found");
-        return res.status(401).json({ message: "Invalid credentials" });
+      if (!email || !password) {
+        logger.warn('Login failed: Missing email or password', { email });
+        return res.status(400).json({ status: 'error', message: 'Email and password are required' });
       }
 
-      // Check if user is verified
-      if (!user.isVerified) {
-        console.log("Login failed: User not verified");
-        return res
-          .status(401)
-          .json({ message: "Please verify your email first" });
-      }
+      const user = await this.authService.login(email, password);
+      const token = this.authService.generateToken(user);
 
-      // Compare password
-      const isMatch = await user.comparePassword(password);
-      console.log("Password match:", isMatch);
-
-      if (!isMatch) {
-        console.log("Login failed: Invalid password");
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Generate JWT token
-      const token = jwt.sign(
-        { userId: user._id, email: user.email, role: user.role },
-        process.env.JWT_SECRET,
-        { expiresIn: "1d" }
-      );
-
-      // Set cookie with token
-      res.cookie("token", token, {
+      res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "strict",
-        maxAge: 24 * 60 * 60 * 1000, // 1 day in milliseconds
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 24 * 60 * 60 * 1000, // 1 day
       });
 
-      console.log("Login successful");
+      logger.info('Login successful:', { email });
       res.status(200).json({
-        message: "Login successful",
-        token,
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
+        status: 'success',
+        message: 'Login successful',
+        data: {
+          token,
+          user: {
+            id: user._id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+          },
         },
       });
     } catch (error) {
-      console.error("Login error:", error.message);
-      res.status(500).json({ message: error.message });
+      logger.error('Login error:', { error: error.message, stack: error.stack });
+      res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message || 'Server error',
+      });
     }
   }
 
   async getProfile(req, res) {
     try {
-      const user = await User.findById(req.user.id).select("-password");
+      const user = await User.findById(req.user.id).select('-password');
       if (!user) {
-        return res.status(404).json({ message: "User not found" });
+        logger.warn('Get profile failed: User not found', { userId: req.user.id });
+        return res.status(404).json({ status: 'error', message: 'User not found' });
       }
-      res.json(user);
+      res.status(200).json({ status: 'success', data: { user } });
     } catch (error) {
-      logger.error("Get profile error:", error);
-      res.status(500).json({ message: "Error fetching profile" });
+      logger.error('Get profile error:', { error: error.message });
+      res.status(500).json({ status: 'error', message: 'Error fetching profile' });
     }
   }
 
   async verifyEmail(req, res) {
     try {
       const { pin } = req.body;
+      if (!pin) {
+        logger.warn('Verify email failed: Missing PIN');
+        return res.status(400).json({ status: 'error', message: 'PIN is required' });
+      }
       await this.authService.verifyEmail(pin);
-
-      res.json({
-        status: "success",
-        message: "Email verified successfully",
+      res.status(200).json({
+        status: 'success',
+        message: 'Email verified successfully',
       });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      logger.error('Verify email error:', { error: error.message });
+      res.status(error.statusCode || 400).json({
+        status: 'error',
+        message: error.message || 'Email verification failed',
+      });
     }
   }
 
   async forgotPassword(req, res) {
     try {
-      const resetToken = await this.authService.forgotPassword(req.body.email);
-
-      res.json({
-        status: "success",
-        message: "Password reset instructions sent to email",
+      const { email } = req.body;
+      if (!email) {
+        logger.warn('Forgot password failed: Missing email');
+        return res.status(400).json({ status: 'error', message: 'Email is required' });
+      }
+      await this.authService.forgotPassword(email);
+      res.status(200).json({
+        status: 'success',
+        message: 'Password reset instructions sent to email',
       });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      logger.error('Forgot password error:', { error: error.message });
+      res.status(error.statusCode || 400).json({
+        status: 'error',
+        message: error.message || 'Failed to process password reset',
+      });
     }
   }
 
   async resetPassword(req, res) {
     try {
-      await this.authService.resetPassword(req.params.token, req.body.password);
-
-      res.json({
-        status: "success",
-        message: "Password reset successful",
+      const { token } = req.params;
+      const { password } = req.body;
+      if (!password) {
+        logger.warn('Reset password failed: Missing password');
+        return res.status(400).json({ status: 'error', message: 'New password is required' });
+      }
+      await this.authService.resetPassword(token, password);
+      res.status(200).json({
+        status: 'success',
+        message: 'Password reset successful',
       });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      logger.error('Reset password error:', { error: error.message });
+      res.status(error.statusCode || 400).json({
+        status: 'error',
+        message: error.message || 'Password reset failed',
+      });
     }
   }
 
   async updateProfile(req, res) {
     try {
-      const updatedUser = await this.authService.updateProfile(
-        req.user.id,
-        req.body
-      );
-      res.json({
-        status: "success",
-        data: {
-          user: updatedUser,
-        },
+      const updatedUser = await this.authService.updateProfile(req.user.id, req.body);
+      res.status(200).json({
+        status: 'success',
+        data: { user: updatedUser },
       });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      logger.error('Update profile error:', { error: error.message });
+      res.status(error.statusCode || 400).json({
+        status: 'error',
+        message: error.message || 'Failed to update profile',
+      });
     }
   }
 
   async changePassword(req, res) {
     try {
-      await this.authService.changePassword(
-        req.user.id,
-        req.body.currentPassword,
-        req.body.newPassword
-      );
-
-      res.json({
-        status: "success",
-        message: "Password changed successfully",
+      const { currentPassword, newPassword } = req.body;
+      if (!currentPassword || !newPassword) {
+        logger.warn('Change password failed: Missing passwords');
+        return res.status(400).json({ status: 'error', message: 'Current and new passwords are required' });
+      }
+      await this.authService.changePassword(req.user.id, currentPassword, newPassword);
+      res.status(200).json({
+        status: 'success',
+        message: 'Password changed successfully',
       });
     } catch (error) {
-      res.status(400).json({ message: error.message });
+      logger.error('Change password error:', { error: error.message });
+      res.status(error.statusCode || 400).json({
+        status: 'error',
+        message: error.message || 'Failed to change password',
+      });
     }
   }
 
   logout(req, res) {
-    // Clear the token cookie
-    res.clearCookie("token", {
+    res.clearCookie('token', {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
     });
-
     res.status(200).json({
-      status: "success",
-      message: "Logged out successfully",
+      status: 'success',
+      message: 'Logged out successfully',
     });
   }
 
   async verifyAuth(req, res) {
     try {
-      // The authMiddleware already verified the token and attached the user
-      const user = await User.findById(req.user.id).select("-password");
-
+      const user = await User.findById(req.user.id).select('-password');
       if (!user) {
+        logger.warn('Verify auth failed: User not found', { userId: req.user.id });
         return res.status(404).json({
-          success: false,
-          message: "User not found",
+          status: 'error',
+          message: 'User not found',
         });
       }
-
-      // Return user information
       res.status(200).json({
-        success: true,
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          role: user.role,
-          isVerified: user.isVerified,
-          isActive: user.isActive,
+        status: 'success',
+        data: {
+          user: {
+            id: user._id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            isVerified: user.isVerified,
+            isActive: user.isActive,
+          },
         },
       });
     } catch (error) {
-      logger.error("Auth verification error:", error);
+      logger.error('Auth verification error:', { error: error.message });
       res.status(500).json({
-        success: false,
-        message: "Authentication verification failed",
+        status: 'error',
+        message: 'Authentication verification failed',
       });
     }
   }
 
-  //-----------------------------admin controllers-------------------
-
-  //sent welcome email 
   async sendWelcomeEmail(req, res) {
     try {
       const { email, password } = req.body;
       if (!email || !password) {
-        return res.status(400).json({ message: "Email and password are required" });
+        logger.warn('Send welcome email failed: Missing email or password');
+        return res.status(400).json({
+          status: 'error',
+          message: 'Email and password are required',
+        });
       }
-
-      const resetToken = await authService.sendWelcomeEmail(email, password);
-
-      res.json({
-        status: "success",
-        message: "Welcome email sent successfully",
+      const resetToken = await this.authService.sendWelcomeEmail(email, password);
+      res.status(200).json({
+        status: 'success',
+        message: 'Welcome email sent successfully',
         data: { resetToken },
       });
     } catch (error) {
-      logger.error("Send welcome email error:", { error: error.message, stack: error.stack });
-      res.status(error.statusCode || 500).json({ message: error.message });
+      logger.error('Send welcome email error:', { error: error.message });
+      res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message || 'Failed to send welcome email',
+      });
     }
   }
 
-  //get all users
   async getAllUsers(req, res) {
     try {
       const users = await this.authService.getAllUsers();
       res.status(200).json({
-        status: "success",
+        status: 'success',
         data: { users },
       });
     } catch (error) {
-      logger.error("Get all users error:", error);
-      res.status(error.statusCode || 500).json({ message: error.message });
+      logger.error('Get all users error:', { error: error.message });
+      res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message || 'Failed to fetch users',
+      });
     }
   }
-  //get user by id
+
   async getUserById(req, res) {
     try {
       const user = await this.authService.getUserById(req.params.id);
       res.status(200).json({
-        status: "success",
+        status: 'success',
         data: { user },
       });
     } catch (error) {
-      logger.error("Get user by ID error:", error);
-      res.status(error.statusCode || 500).json({ message: error.message });
+      logger.error('Get user by ID error:', { error: error.message });
+      res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message || 'Failed to fetch user',
+      });
     }
   }
-  //update user
+
   async updateUser(req, res) {
     try {
-      const updatedUser = await this.authService.updateUser(
-        req.params.id,
-        req.body
-      );
+      const updatedUser = await this.authService.updateUser(req.params.id, req.body);
       res.status(200).json({
-        status: "success",
+        status: 'success',
         data: { user: updatedUser },
       });
     } catch (error) {
-      logger.error("Update user error:", error);
-      res.status(error.statusCode || 500).json({ message: error.message });
+      logger.error('Update user error:', { error: error.message });
+      res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message || 'Failed to update user',
+      });
     }
   }
-  // delete user
+
   async deleteUser(req, res) {
     try {
       await this.authService.deleteUser(req.params.id);
       res.status(200).json({
-        status: "success",
-        message: "User deleted successfully",
+        status: 'success',
+        message: 'User deleted successfully',
       });
     } catch (error) {
-      logger.error("Delete user error:", error);
-      res.status(error.statusCode || 500).json({ message: error.message });
+      logger.error('Delete user error:', { error: error.message });
+      res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message || 'Failed to delete user',
+      });
     }
   }
-  //update user status
+
   async updateUserStatus(req, res) {
     try {
-      const updatedUser = await this.authService.updateUserStatus(
-        req.params.id,
-        req.body
-      );
+      const updatedUser = await this.authService.updateUserStatus(req.params.id, req.body);
       res.status(200).json({
-        status: "success",
+        status: 'success',
         data: { user: updatedUser },
       });
     } catch (error) {
-      logger.error("Update user status error:", error);
-      res.status(error.statusCode || 500).json({ message: error.message });
+      logger.error('Update user status error:', { error: error.message });
+      res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message || 'Failed to update user status',
+      });
     }
   }
-  //update user role
+
   async updateUserRole(req, res) {
     try {
-      const updatedUser = await this.authService.updateUserRole(
-        req.params.id,
-        req.body.role
-      );
+      const { role } = req.body;
+      if (!role) {
+        logger.warn('Update user role failed: Missing role');
+        return res.status(400).json({ status: 'error', message: 'Role is required' });
+      }
+      const updatedUser = await this.authService.updateUserRole(req.params.id, role);
       res.status(200).json({
-        status: "success",
+        status: 'success',
         data: { user: updatedUser },
       });
     } catch (error) {
-      logger.error("Update user role error:", error);
-      res.status(error.statusCode || 500).json({ message: error.message });
+      logger.error('Update user role error:', { error: error.message });
+      res.status(error.statusCode || 500).json({
+        status: 'error',
+        message: error.message || 'Failed to update user role',
+      });
     }
   }
 }
