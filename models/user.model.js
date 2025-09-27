@@ -1,4 +1,3 @@
-// auth-service/src/models/user.model.js
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
@@ -15,7 +14,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: 6,
-      select: true, // Changed to true to include password in queries
     },
     firstName: {
       type: String,
@@ -61,7 +59,7 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["PATIENT" , "DOCTOR" , "ADMIN" ],
+      enum: ["PATIENT", "DOCTOR", "ADMIN"],
       default: "PATIENT",
     },
     isVerified: {
@@ -89,14 +87,8 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
   },
-  {
-    timestamps: true,
-  }
+  { discriminatorKey: "role", timestamps: true }
 );
 
 // Hash password before saving
