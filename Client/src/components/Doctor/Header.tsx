@@ -1,5 +1,5 @@
 
-import { FaMoon, FaSun, FaBell, FaSearch } from "react-icons/fa";
+import { FaMoon, FaSun, FaBell } from "react-icons/fa";
 import { FiUser } from "react-icons/fi";
 import { MdOutlinePowerSettingsNew } from "react-icons/md";
 import { HiOutlineMenuAlt2 } from "react-icons/hi";
