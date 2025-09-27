@@ -1,6 +1,9 @@
 import nodemailer from 'nodemailer';
 import { config } from 'dotenv';
 import { User } from '../models/user.model.js';
+import { Admin } from '../models/admin.model.js';
+import { Doctor } from '../models/doctor.model.js';
+import { Patient } from '../models/patient.model.js';
 import logger from '../utils/logger.js';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -72,7 +75,7 @@ export class AuthService {
   // register
   async register(userData) {
     try {
-      // Input validation
+      // Input validation for common fields
       if (!userData.email || !userData.password) {
         logger.warn('Registration failed - Missing required fields');
         throw new AppError('Email and password are required', 400);
@@ -80,23 +83,67 @@ export class AuthService {
 
       logger.info('Starting registration for:', { email: userData.email });
 
+      // Check if email already exists
       const existingUser = await User.findOne({ email: userData.email });
       if (existingUser) {
         logger.warn('Registration failed - Email already exists:', { email: userData.email });
         throw new AppError('Email already registered', 400);
       }
 
+      // Generate verification PIN
       const verificationPin = Math.floor(100000 + Math.random() * 900000).toString();
       const verificationPinExpires = new Date(Date.now() + 10 * 60 * 1000);
 
+      // Create User document with common fields
       const user = await User.create({
-        ...userData,
+        email: userData.email,
+        password: userData.password,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        address: userData.address,
+        phone: userData.phone,
+        role: userData.role,
         verificationPin,
         verificationPinExpires,
         isVerified: false,
       });
+
       logger.info('User created successfully:', { userId: user._id });
 
+      // Create role-specific document
+      let roleDocument;
+      switch (userData.role) {
+        case "PATIENT":
+          roleDocument = await Patient.create({
+            userId: user._id,
+            healthCardId: userData.healthCardId, //auto-generated if not provided
+            dateOfBirth: userData.dateOfBirth ? new Date(userData.dateOfBirth) : undefined,
+            gender: userData.gender,
+          });
+          break;
+        case "DOCTOR":
+          roleDocument = await Doctor.create({
+            userId: user._id,
+            specialization: userData.specialization,
+            licenseNumber: userData.licenseNumber,
+          });
+          break;
+        case "ADMIN":
+          roleDocument = await Admin.create({
+            userId: user._id,
+            adminLevel: userData.adminLevel,
+          });
+          break;
+        default:
+          // Delete the User document if role is invalid
+          await User.deleteOne({ _id: user._id });
+          logger.warn('Registration failed - Invalid role:', { role: userData.role });
+          throw new AppError('Invalid role. Must be PATIENT, DOCTOR, or ADMIN', 400);
+      }
+
+      logger.info('Role-specific document created:', { role: userData.role, roleDocumentId: roleDocument._id });
+
+      // Email functionality (unchanged as requested)
       const mailOptions = {
         from: process.env.EMAIL_FROM,
         to: user.email,
@@ -116,13 +163,18 @@ export class AuthService {
         logger.info('Verification email sent:', { email: user.email, messageId: info.messageId });
       } catch (emailError) {
         logger.error('Failed to send verification email:', { error: emailError.message });
-        // Optionally, delete user if email fails
+        // Optionally, delete user and role-specific document if email fails
         // await User.deleteOne({ _id: user._id });
+        // await roleDocument.constructor.deleteOne({ _id: roleDocument._id });
         // throw new AppError('Failed to send verification email', 500);
       }
 
-      return { user };
+      return { user, roleDocument };
     } catch (error) {
+      // Clean up User document if role-specific creation fails
+      if (error.name !== 'AppError' && user) {
+        await User.deleteOne({ _id: user._id });
+      }
       logger.error('Registration error:', { error: error.message });
       throw error instanceof AppError ? error : new AppError('Registration failed', 500);
     }

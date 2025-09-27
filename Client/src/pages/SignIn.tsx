@@ -13,7 +13,7 @@ function SignIn() {
   const { login: authLogin, user, loading: authLoading } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [email, setEmail] = useState("jinadgamage@gmail.com");
-  const [password, setPassword] = useState("Password123@");
+  const [password, setPassword] = useState("Asdf12345");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [isLoading, setIsLoading] = useState(false);

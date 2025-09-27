@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { IoEyeOutline, IoEyeOffOutline, IoLogoApple } from "react-icons/io5";
@@ -14,6 +13,8 @@ interface FormData {
   firstName: string;
   lastName: string;
   role: string;
+  specialization: string;
+  licenseNumber: string;
   address: {
     street: string;
     city: string;
@@ -28,6 +29,8 @@ interface FormErrors {
   password: string;
   firstName: string;
   lastName: string;
+  specialization: string;
+  licenseNumber: string;
   address: {
     street: string;
     city: string;
@@ -37,7 +40,7 @@ interface FormErrors {
   };
 }
 
-function SignUp() {
+function SignUp_Doctor() {
   const navigate = useNavigate();
   const { login: authLogin } = useAuth();
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -48,7 +51,9 @@ function SignUp() {
     password: "",
     firstName: "",
     lastName: "",
-    role: "PATIENT",
+    role: "DOCTOR",
+    specialization: "",
+    licenseNumber: "",
     address: {
       street: "",
       city: "",
@@ -62,6 +67,8 @@ function SignUp() {
     password: "",
     firstName: "",
     lastName: "",
+    specialization: "",
+    licenseNumber: "",
     address: {
       street: "",
       city: "",
@@ -120,6 +127,14 @@ function SignUp() {
       setErrors((prev) => ({ ...prev, lastName: "Last name is required" }));
       isValid = false;
     }
+    if (!formData.specialization.trim()) {
+      setErrors((prev) => ({ ...prev, specialization: "Specialization is required" }));
+      isValid = false;
+    }
+    if (!formData.licenseNumber.trim()) {
+      setErrors((prev) => ({ ...prev, licenseNumber: "License number is required" }));
+      isValid = false;
+    }
     if (!formData.address.street.trim()) {
       setErrors((prev) => ({
         ...prev,
@@ -155,11 +170,10 @@ function SignUp() {
       }));
       isValid = false;
     }
-    // Removed the "Sri Lanka" restriction to match backend behavior
     return isValid;
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     if (name.includes(".")) {
       const [parent, child] = name.split(".");
@@ -194,7 +208,7 @@ function SignUp() {
 
     const submitData = {
       ...formData,
-    }; // Removed forced "Sri Lanka" country
+    };
 
     setIsLoading(true);
     try {
@@ -212,6 +226,10 @@ function SignUp() {
               setErrors((prev) => ({ ...prev, firstName: err.msg }));
             } else if (err.path === "password") {
               setErrors((prev) => ({ ...prev, password: err.msg }));
+            } else if (err.path === "specialization") {
+              setErrors((prev) => ({ ...prev, specialization: err.msg }));
+            } else if (err.path === "licenseNumber") {
+              setErrors((prev) => ({ ...prev, licenseNumber: err.msg }));
             } else if (err.path.startsWith("address.")) {
               const field = err.path.split(".")[1];
               setErrors((prev) => ({
@@ -239,13 +257,9 @@ function SignUp() {
 
     setIsLoading(true);
     try {
-      console.log("Verifying email with pin:", verificationPin); // Debug log
       const response = await verifyEmail(verificationPin);
-      console.log("Verification response:", response); // Debug response
       if (response.status === "success") {
-        // Verification successful, now log in the user
         const loginResponse = await login(formData.email, formData.password);
-        console.log("Login response:", loginResponse); // Debug login response
         if (loginResponse.status === "success" && loginResponse.data.token) {
           localStorage.setItem("token", loginResponse.data.token);
           authLogin({
@@ -256,12 +270,7 @@ function SignUp() {
             lastName: loginResponse.data.user.lastName,
           });
           toast.success("Account verified and logged in successfully!");
-          // Navigate based on role
-          if (loginResponse.data.user.role === "DOCTOR") {
-            navigate("/doctor-dashboard/profile");
-          } else {
-            navigate("/signin");
-          }
+          navigate("/doctor-dashboard");
         } else {
           throw new Error("Login failed after verification");
         }
@@ -269,7 +278,6 @@ function SignUp() {
         throw new Error(response.message || "Verification failed");
       }
     } catch (error: unknown) {
-      console.error("Verification error details:", error); // Detailed error log
       if (error instanceof Error) {
         toast.error(`Verification failed: ${error.message}`);
       } else {
@@ -285,8 +293,8 @@ function SignUp() {
     try {
       const submitData = {
         ...formData,
-      }; // Removed forced "Sri Lanka" country
-      await register(submitData); // Re-trigger registration to resend the code
+      };
+      await register(submitData);
       toast.success("A new verification code has been sent to your email");
     } catch (error: unknown) {
       toast.error("Failed to resend verification code");
@@ -299,8 +307,6 @@ function SignUp() {
     return (
       <div className="mx-auto flex w-full mt-20 lg:mt-0 max-w-[1920px] flex-col lg:flex-row min-h-screen">
         <Toaster position="top-right" reverseOrder={false} />
-
-        {/* Background Image */}
         <div className="hidden lg:block lg:w-[55%] h-screen sticky top-0">
           <img
             src="/assets/Home/signup_healthcare_bg.jpg"
@@ -308,7 +314,6 @@ function SignUp() {
             className="h-full w-full object-cover"
           />
         </div>
-
         <div className="flex w-full flex-col px-[20px] pt-[20px] sm:px-[30px] sm:pt-[30px] md:px-20 lg:w-[45%] lg:px-[60px] lg:pt-[80px] 2xl:px-[165px] 2xl:pt-[154px] min-h-screen">
           <div className="w-full mb-4 hidden lg:block">
             <span className="text-4xl font-bold text-blue-600">Medora</span>
@@ -371,8 +376,6 @@ function SignUp() {
   return (
     <div className="mx-auto flex w-full mt-20 lg:mt-0 max-w-[1920px] flex-col lg:flex-row min-h-screen">
       <Toaster position="top-right" reverseOrder={false} />
-
-      {/* Background Image */}
       <div className="hidden lg:block lg:w-[55%] h-screen sticky top-0">
         <img
           src="/assets/Home/signup_healthcare_bg.jpg"
@@ -380,24 +383,17 @@ function SignUp() {
           className="h-full w-full object-cover"
         />
       </div>
-
-      {/* Form Section */}
       <div className="flex w-full flex-col px-[20px] pt-[20px] sm:px-[30px] sm:pt-[30px] md:px-20 lg:w-[45%] lg:px-[60px] lg:pt-[80px] 2xl:px-[165px] 2xl:pt-[154px] min-h-screen">
-        {/* Logo */}
         <div className="w-full mb-4 hidden lg:block">
           <span className="text-4xl font-bold text-blue-600">Medora</span>
         </div>
-
-        {/* Sign Up Section */}
         <div className="flex w-full flex-col lg:mt-10">
           <h2 className="font-PlusSans text-[24px] font-bold leading-[32px] text-[#000] lg:text-[36px]">
-            Create Account
+            Doctor Registration
           </h2>
           <span className="mt-5 font-PlusSans text-sm font-medium leading-6 text-black lg:text-base lg:leading-8">
-            Create your account to access healthcare services.
+            Register as a doctor to provide healthcare services.
           </span>
-
-          {/* Name Fields */}
           <div className="grid grid-cols-2 gap-4 mt-[32px]">
             <div className="space-y-1">
               <input
@@ -440,8 +436,6 @@ function SignUp() {
               )}
             </div>
           </div>
-
-          {/* Email Input */}
           <div className="mt-[24px] space-y-1">
             <input
               type="email"
@@ -462,8 +456,6 @@ function SignUp() {
               <p className="text-xs text-red-500 mt-1">{errors.email}</p>
             )}
           </div>
-
-          {/* Password Input */}
           <div className="mt-[24px] space-y-1">
             <div className="relative">
               <input
@@ -502,8 +494,46 @@ function SignUp() {
               <p className="text-xs text-red-500 mt-1">{errors.password}</p>
             )}
           </div>
-
-          {/* Address Fields */}
+          <div className="mt-[24px] space-y-1">
+            <input
+              type="text"
+              name="specialization"
+              value={formData.specialization}
+              onChange={handleInputChange}
+              placeholder="Specialization"
+              className={`w-full font-PlusSans text-[14px] font-normal leading-[24px] text-black placeholder:text-[#646464] focus:outline-none ${
+                errors.specialization ? "text-red-500" : ""
+              }`}
+            />
+            <div
+              className={`h-[1px] w-full ${
+                errors.specialization ? "bg-red-500" : "bg-[#000]"
+              }`}
+            ></div>
+            {errors.specialization && (
+              <p className="text-xs text-red-500 mt-1">{errors.specialization}</p>
+            )}
+          </div>
+          <div className="mt-[24px] space-y-1">
+            <input
+              type="text"
+              name="licenseNumber"
+              value={formData.licenseNumber}
+              onChange={handleInputChange}
+              placeholder="License Number"
+              className={`w-full font-PlusSans text-[14px] font-normal leading-[24px] text-black placeholder:text-[#646464] focus:outline-none ${
+                errors.licenseNumber ? "text-red-500" : ""
+              }`}
+            />
+            <div
+              className={`h-[1px] w-full ${
+                errors.licenseNumber ? "bg-red-500" : "bg-[#000]"
+              }`}
+            ></div>
+            {errors.licenseNumber && (
+              <p className="text-xs text-red-500 mt-1">{errors.licenseNumber}</p>
+            )}
+          </div>
           <div className="mt-[24px] space-y-4">
             <div className="space-y-1">
               <input
@@ -620,11 +650,9 @@ function SignUp() {
               </div>
             </div>
           </div>
-
-          {/* Sign Up Button */}
           <div className="mt-[32px] w-full">
             <CustomButton
-              title={isLoading ? "Creating Account..." : "Create Account"}
+              title={isLoading ? "Creating Account..." : "Register as Doctor"}
               bgColor="bg-blue-600"
               textColor="text-white"
               onClick={handleFormSubmit}
@@ -632,12 +660,9 @@ function SignUp() {
               disabled={isLoading}
             />
           </div>
-
           <div className="mt-[23px] flex items-center justify-center font-PlusSans text-sm leading-6 text-black">
             or continue with
           </div>
-
-          {/* Social Login Buttons */}
           <div className="mt-[24px] flex items-center justify-center space-x-[9px] lg:mt-[46px]">
             <div
               className="flex h-[46px] w-[105px] cursor-pointer items-center justify-center border-[1px] border-[#00000033] bg-white hover:border-2 hover:border-blue-600"
@@ -652,8 +677,6 @@ function SignUp() {
               <IoLogoApple size={24} />
             </div>
           </div>
-
-          {/* Sign In Link */}
           <h1 className="mt-[12px] flex items-center justify-center font-PlusSans text-sm leading-6 text-[#646464]">
             Already have an account?{" "}
             <span
@@ -663,20 +686,16 @@ function SignUp() {
               Sign In
             </span>
           </h1>
-
-          {/* Join As Doctor Link */}
           <h1 className="mt-[12px] flex items-center justify-center font-PlusSans text-sm leading-6 text-[#646464]">
-            Are you a healthcare professional?{" "}
+            Are you a patient?{" "}
             <span
               className="ml-2.5 cursor-pointer font-semibold text-blue-600 hover:text-blue-700 hover:underline"
-              onClick={() => navigate("/doctor-signup")}
+              onClick={() => navigate("/signup")}
             >
-              Join As Doctor
+              Sign Up as Patient
             </span>
           </h1>
         </div>
-
-        {/* Footer */}
         <div className="mt-auto flex items-center justify-center py-3 font-PlusSans text-xs leading-6 text-black lg:py-7">
           2025 © All rights reserved. Medora
         </div>
@@ -685,4 +704,4 @@ function SignUp() {
   );
 }
 
-export default SignUp;
+export default SignUp_Doctor;
