@@ -15,6 +15,14 @@ router.post(
   consultationController.addConsultation
 );
 
+// Protected route for getting all patients (DOCTOR or ADMIN)
+router.get(
+  "/patients",
+  auth,
+  authorize("DOCTOR"),
+  consultationController.getAllPatients
+);
+
 // Protected route for searching diagnosis codes (only doctors)
 router.get(
   "/search-diagnosis",

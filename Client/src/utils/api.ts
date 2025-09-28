@@ -318,3 +318,252 @@ export const updateUserRole = async (userId: string, roleData: UserRoleData) => 
   }
 };
 
+//------------------------ Consultation APIs ----------------------
+
+interface DiagnosisCode {
+  code: string;
+  description: string;
+}
+
+interface Medication {
+  drug: string;
+  dosage: string;
+  frequency: string;
+}
+
+interface ClinicalNotes {
+  subjective?: string;
+  objective?: string;
+}
+
+interface ConsultationData {
+  patient: string;
+  doctor: string;
+  consultationDate: string;
+  status?: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  diagnosis?: DiagnosisCode[];
+  medications?: Medication[];
+  clinicalNotes?: ClinicalNotes;
+  recommendedTests?: string[];
+}
+
+interface TestName {
+  name: string;
+}
+
+interface SearchQuery {
+  query: string;
+  maxResults?: number;
+}
+
+// Get all patients (for doctors)
+export const getAllPatients = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(`${BASE_URL}/consultations/patients`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to fetch patients");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Fetch all patients error:", error);
+    throw error;
+  }
+};
+
+// Add a new consultation
+export const addConsultation = async (consultationData: ConsultationData) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(`${BASE_URL}/consultations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(consultationData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to add consultation");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Add consultation error:", error);
+    throw error;
+  }
+};
+
+// Search diagnosis codes
+export const searchDiagnosisCodes = async ({ query, maxResults = 10 }: SearchQuery) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    if (!query) {
+      throw new Error("Query parameter is required");
+    }
+
+    const response = await fetch(
+      `${BASE_URL}/consultations/search-diagnosis?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to search diagnosis codes");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Search diagnosis codes error:", error);
+    throw error;
+  }
+};
+
+// Search test names
+export const searchTestNames = async ({ query, maxResults = 10 }: SearchQuery) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    if (!query) {
+      throw new Error("Query parameter is required");
+    }
+
+    const response = await fetch(
+      `${BASE_URL}/consultations/search-tests?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to search test names");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Search test names error:", error);
+    throw error;
+  }
+};
+
+// Get consultations by patient ID
+export const getConsultationsByPatient = async (patientId: string) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(`${BASE_URL}/consultations/patient/${patientId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to fetch consultations");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Fetch consultations by patient error:", error);
+    throw error;
+  }
+};
+
+// Update a consultation
+export const updateConsultation = async (id: string, consultationData: Partial<ConsultationData>) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(`${BASE_URL}/consultations/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(consultationData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update consultation");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Update consultation error:", error);
+    throw error;
+  }
+};
+
+// Delete a consultation
+export const deleteConsultation = async (id: string) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(`${BASE_URL}/consultations/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete consultation");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Delete consultation error:", error);
+    throw error;
+  }
+};

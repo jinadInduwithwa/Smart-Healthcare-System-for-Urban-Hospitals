@@ -6,6 +6,7 @@ export class ConsultationController {
   constructor() {
     this.consultationService = new ConsultationService();
     this.addConsultation = this.addConsultation.bind(this);
+    this.getAllPatients = this.getAllPatients.bind(this);
     this.searchDiagnosisCodes = this.searchDiagnosisCodes.bind(this);
     this.searchTestNames = this.searchTestNames.bind(this);
     this.getConsultationsByPatient = this.getConsultationsByPatient.bind(this);
@@ -40,6 +41,32 @@ export class ConsultationController {
       });
     }
   }
+
+   async getAllPatients(req, res) {
+    try {
+      logger.info("Processing get all patients request", {
+        userId: req.user._id,
+      });
+
+      const result = await this.consultationService.getAllPatients();
+
+      res.status(200).json({
+        success: true,
+        data: result.data,
+        message: result.message,
+      });
+    } catch (error) {
+      logger.error("Error in getAllPatients controller", {
+        userId: req.user._id,
+        error: error.message,
+      });
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
 
   async searchDiagnosisCodes(req, res) {
     try {

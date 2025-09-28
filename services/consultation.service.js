@@ -1,5 +1,6 @@
 import { Consultation } from "../models/consultation.model.js";
 import { User } from "../models/user.model.js";
+import { Patient } from "../models/patient.model.js";
 import mongoose from "mongoose";
 import logger from "../utils/logger.js";
 import { AppError } from "../utils/AppError.js";
@@ -9,11 +10,44 @@ import { validateTestName, searchTestNames } from "../utils/test.helper.js";
 export class ConsultationService {
   constructor() {
     this.addConsultation = this.addConsultation.bind(this);
+    this.getAllPatients = this.getAllPatients.bind(this);
     this.searchDiagnosisCodes = this.searchDiagnosisCodes.bind(this);
     this.searchTestNames = this.searchTestNames.bind(this);
     this.getConsultationsByPatient = this.getConsultationsByPatient.bind(this);
     this.updateConsultation = this.updateConsultation.bind(this);
     this.deleteConsultation = this.deleteConsultation.bind(this);
+  }
+
+  async getAllPatients() {
+    try {
+      logger.info("Fetching all patients");
+
+      const patients = await Patient.find()
+        .populate({
+          path: "userId",
+          select: "email firstName lastName address phone isActive role",
+          match: { isActive: true, role: "PATIENT" },
+        })
+        .lean();
+
+      // Filter out patients where userId is null (i.e., inactive users or non-patients)
+      const activePatients = patients.filter((patient) => patient.userId);
+
+      if (!activePatients.length) {
+        logger.warn("No active patients found");
+        throw new AppError("No active patients found", 404);
+      }
+
+      logger.info("Retrieved all patients", { count: activePatients.length });
+
+      return {
+        data: activePatients,
+        message: "Patients retrieved successfully",
+      };
+    } catch (error) {
+      logger.error("Error fetching all patients", { error: error.message });
+      throw error instanceof AppError ? error : new AppError("Failed to retrieve patients", 500);
+    }
   }
 
   async addConsultation(consultationData, user) {
