@@ -31,10 +31,11 @@ const DoctorRoutes = () => {
 import Home from "./pages/Home";
 import Layout from "./components/UI/Layout";
 import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
+import SignUp from "./pages/SignUp_Patient";
 import Profile from "./pages/Profile";
 import MobileBottomNav from "./components/UI/MobileBottomNav";
 import Overview from "./pages/doctor/Overview";
+import SignUp_Doctor from "./pages/SignUp_Doctor";
 
 function App() {
   console.log("App component rendered");
@@ -56,8 +57,9 @@ function App() {
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route path="/" element={<Home />} />
-                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signin" element={<SignIn />} /> 
                 <Route path="/signup" element={<SignUp />} />
+                <Route path="/doctor-signup" element={<SignUp_Doctor />} />
                 <Route path="/account" element={<Profile />} />
               </Route>
               {/* path for doctor dashboard */}
