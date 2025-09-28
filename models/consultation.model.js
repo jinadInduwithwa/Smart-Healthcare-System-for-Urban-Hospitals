@@ -1,29 +1,43 @@
-// auth-service/src/models/consultation.model.js
 import mongoose from "mongoose";
-import { User } from "./user.model.js"; // Assuming User is the base model for Patient and Doctor
+import { User } from "./user.model.js";
+import { validateDiagnosisCode } from "../utils/icd.helper.js";
 
 const consultationSchema = new mongoose.Schema(
   {
     patient: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // References User model (with role: "PATIENT")
+      ref: User,
       required: [true, "Patient ID is required"],
     },
     doctor: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // References User model (with role: "DOCTOR")
+      ref: User,
       required: [true, "Doctor ID is required"],
     },
-    diagnosis: {
-      code: {
-        type: String, // e.g., ICD-10 code like "A00.0"
-        trim: true,
-      },
-      description: {
-        type: String,
-        trim: true,
-      },
+    consultationDate: {
+      type: Date,
+      required: [true, "Consultation date is required"],
     },
+    status: {
+      type: String,
+      enum: ["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"],
+      default: "SCHEDULED",
+      required: true,
+    },
+    diagnosis: [
+      {
+        code: {
+          type: String,
+          trim: true,
+          required: [true, "Diagnosis code is required"],
+        },
+        description: {
+          type: String,
+          trim: true,
+          required: [true, "Diagnosis description is required"],
+        },
+      },
+    ],
     clinicalNotes: {
       subjective: {
         type: String,
@@ -63,12 +77,12 @@ const consultationSchema = new mongoose.Schema(
       {
         action: {
           type: String,
-          enum: ["CREATED", "UPDATED"], // Can expand for more actions
+          enum: ["CREATED", "UPDATED"],
           required: true,
         },
         performedBy: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "User", // References the user who performed the action
+          ref: "User",
           required: true,
         },
         timestamp: {
@@ -76,7 +90,7 @@ const consultationSchema = new mongoose.Schema(
           default: Date.now,
         },
         changes: {
-          type: mongoose.Schema.Types.Mixed, // Optional: Store diff of changes
+          type: mongoose.Schema.Types.Mixed,
         },
       },
     ],
@@ -84,41 +98,64 @@ const consultationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Pre-save validation hook (e.g., for data completeness and correctness)
+// Indexes for performance
+consultationSchema.index({ patient: 1, consultationDate: -1 });
+consultationSchema.index({ doctor: 1, consultationDate: -1 });
+
+// Pre-save validation hook
 consultationSchema.pre("save", async function (next) {
-  // Validate diagnosis if provided
-  if (this.diagnosis && this.diagnosis.code) {
-    // Optional: Add ICD-10 validation logic here (e.g., regex or external check)
-    if (!/^[A-Z]\d{2}(\.\d{1,2})?$/.test(this.diagnosis.code)) {
-      return next(new Error("Invalid ICD-10 code format"));
+  try {
+    // Validate patient and doctor roles
+    const patient = await User.findById(this.patient);
+    if (!patient || patient.role !== "PATIENT") {
+      return next(new Error("Invalid patient ID or role"));
     }
-  }
+    const doctor = await User.findById(this.doctor);
+    if (!doctor || doctor.role !== "DOCTOR") {
+      return next(new Error("Invalid doctor ID or role"));
+    }
 
-  // Validate medications
-  if (this.medications && this.medications.length > 0) {
-    for (const med of this.medications) {
-      if (!med.drug || !med.dosage || !med.frequency) {
-        return next(new Error("All medication fields (drug, dosage, frequency) are required"));
+    // Validate diagnoses with local dataset
+    if (this.diagnosis && this.diagnosis.length > 0) {
+      for (const diag of this.diagnosis) {
+        const { valid, description } = await validateDiagnosisCode(diag.code);
+        if (!valid) {
+          return next(new Error(`Invalid ICD-10 code: ${diag.code}`));
+        }
+        // Update description if not provided
+        if (!diag.description) {
+          diag.description = description;
+        }
       }
-      // Optional: Add dosage validation (e.g., regex for "500mg")
     }
-  }
 
-  // Add initial audit trail entry if new document
-  if (this.isNew) {
-    this.auditTrail = [
-      {
-        action: "CREATED",
-        performedBy: this.doctor, // Assuming doctor is the creator
-        timestamp: new Date(),
-      },
-    ];
-  }
+    // Validate medications
+    if (this.medications && this.medications.length > 0) {
+      for (const med of this.medications) {
+        if (!med.drug || !med.dosage || !med.frequency) {
+          return next(new Error("All medication fields (drug, dosage, frequency) are required"));
+        }
+      }
+    }
 
-  next();
+    // Add initial audit trail entry if new document
+    if (this.isNew) {
+      this.auditTrail = [
+        {
+          action: "CREATED",
+          performedBy: this.doctor,
+          timestamp: new Date(),
+        },
+      ];
+    }
+
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
-// Optional: Method to add audit trail for updates
+// Method to add audit trail for updates
 consultationSchema.methods.addAuditEntry = async function (action, performedBy, changes) {
   this.auditTrail.push({
     action,
