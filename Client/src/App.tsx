@@ -74,6 +74,8 @@
 
 // export default App;
 
+
+
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { ToastContainer } from "react-toastify";
@@ -89,6 +91,9 @@ import DoctorLayout from "./pages/doctor/DoctorLayout";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
 import AdminLayout from "./pages/AdminDashboard/AdminLayout";
 import Reports from "./pages/AdminDashboard/Reports";
+import AdminOverview from "./pages/AdminDashboard/Overview";
+import DoctorManagement from "./pages/AdminDashboard/DoctorManagement";
+import PatientManagement from "./pages/AdminDashboard/PatientManagement"; // New import
 
 const DoctorRoutes = () => {
   return (
@@ -129,7 +134,10 @@ function App() {
           <Route path="/doctor-dashboard/*" element={<DoctorRoutes />} />
           <Route path="/admin-dashboard/*" element={<AdminLayout />}>
             <Route path="reports" element={<Reports />} />
+            <Route path="overview" element={<AdminOverview />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="users/doctors" element={<DoctorManagement />} />
+            <Route path="users/patients" element={<PatientManagement />} /> {/* New route */}
           </Route>
         </Routes>
         <MobileBottomNav />
