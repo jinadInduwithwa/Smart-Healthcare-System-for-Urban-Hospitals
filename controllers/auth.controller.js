@@ -5,7 +5,6 @@ import logger from '../utils/logger.js';
 export class AuthController {
   constructor() {
     this.authService = new AuthService();
-
     this.register = this.register.bind(this);
     this.login = this.login.bind(this);
     this.getProfile = this.getProfile.bind(this);
@@ -27,19 +26,67 @@ export class AuthController {
 
   async register(req, res) {
     try {
-      const { email, password, role, firstName, lastName, address } = req.body;
+      const {
+        email,
+        password,
+        role,
+        firstName,
+        lastName,
+        address,
+        phone,
+        healthCardId,
+        dateOfBirth,
+        gender,
+        specialization,
+        licenseNumber,
+        adminLevel,
+      } = req.body;
+
+      // Validate common required fields
       if (!email || !password) {
         logger.warn('Registration failed: Missing email or password', { email });
         return res.status(400).json({ status: 'error', message: 'Email and password are required' });
       }
 
-      const { user } = await this.authService.register({
+      // Validate role
+      const validRoles = ['PATIENT', 'DOCTOR', 'ADMIN'];
+      if (!validRoles.includes(role)) {
+        logger.warn('Registration failed: Invalid role', { role });
+        return res.status(400).json({ status: 'error', message: 'Invalid role. Must be PATIENT, DOCTOR, or ADMIN' });
+      }
+
+      // Validate role-specific required fields
+      if (role === 'PATIENT') {
+        if (!dateOfBirth || !gender) {
+          logger.warn('Registration failed: Missing patient-specific fields', { email });
+          return res.status(400).json({ status: 'error', message: 'dateOfBirth and gender are required for PATIENT role' });
+        }
+      } else if (role === 'DOCTOR') {
+        if (!specialization || !licenseNumber) {
+          logger.warn('Registration failed: Missing doctor-specific fields', { email });
+          return res.status(400).json({ status: 'error', message: 'specialization and licenseNumber are required for DOCTOR role' });
+        }
+      } else if (role === 'ADMIN') {
+        if (!adminLevel) {
+          logger.warn('Registration failed: Missing admin-specific fields', { email });
+          return res.status(400).json({ status: 'error', message: 'adminLevel is required for ADMIN role' });
+        }
+      }
+
+      const { user, roleDocument } = await this.authService.register({
         email,
         password,
         firstName,
         lastName,
         address,
-        role: role || 'CUSTOMER',
+        phone,
+        role,
+        healthCardId,
+        dateOfBirth,
+        gender,
+        specialization,
+        licenseNumber,
+        adminLevel,
       });
 
       const token = this.authService.generateToken(user);
@@ -57,7 +104,21 @@ export class AuthController {
             firstName: user.firstName,
             lastName: user.lastName,
             address: user.address,
+            phone: user.phone,
             isVerified: user.isVerified,
+            roleDocumentId: roleDocument._id,
+            ...(role === 'PATIENT' && {
+              healthCardId: roleDocument.healthCardId,
+              dateOfBirth: roleDocument.dateOfBirth,
+              gender: roleDocument.gender,
+            }),
+            ...(role === 'DOCTOR' && {
+              specialization: roleDocument.specialization,
+              licenseNumber: roleDocument.licenseNumber,
+            }),
+            ...(role === 'ADMIN' && {
+              adminLevel: roleDocument.adminLevel,
+            }),
           },
         },
       });

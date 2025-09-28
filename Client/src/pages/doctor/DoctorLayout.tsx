@@ -27,7 +27,7 @@ const DoctorLayout = () => {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
         {/* Header */}
-        <Header toggleDarkMode={toggleDarkMode} darkMode={darkMode} toggleSidebar={toggleSidebar} />
+        <Header toggleDarkMode={toggleDarkMode} darkMode={darkMode} toggleSidebar={toggleSidebar} isSidebarOpen={false} />
 
         {/* Main Content */}
         <main className="p-6 lg:ml-64 pt-20">

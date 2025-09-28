@@ -88,7 +88,7 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
   },
-  { discriminatorKey: "role", timestamps: true }
+  { timestamps: true }
 );
 
 // Hash password before saving

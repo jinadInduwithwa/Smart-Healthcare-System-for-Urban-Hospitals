@@ -1,12 +1,20 @@
 import mongoose from "mongoose";
-import { User } from "./user.model.js";
 
-const adminSchema = new mongoose.Schema({
-  adminLevel: {
-    type: String,
-    enum: ["SUPER_ADMIN", "HOSPITAL_ADMIN"],
-    default: "HOSPITAL_ADMIN",
+const adminSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "User ID is required"],
+      unique: true,
+    },
+    adminLevel: {
+      type: String,
+      enum: ["SUPER_ADMIN", "HOSPITAL_ADMIN"],
+      default: "HOSPITAL_ADMIN",
+    },
   },
-});
+  { timestamps: true }
+);
 
-export const Admin = User.discriminator("ADMIN", adminSchema);
+export const Admin = mongoose.model("Admin", adminSchema);
