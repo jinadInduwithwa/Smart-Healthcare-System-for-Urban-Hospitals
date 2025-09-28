@@ -1,7 +1,6 @@
 import mongoose from "mongoose";
 import { User } from "./user.model.js";
 import { validateDiagnosisCode } from "../utils/icd.helper.js";
-import { validateTestName } from "../utils/test.helper.js";
 
 const consultationSchema = new mongoose.Schema(
   {
@@ -78,7 +77,7 @@ const consultationSchema = new mongoose.Schema(
       {
         action: {
           type: String,
-          enum: ["CREATED", "UPDATED"],
+          enum: ["CREATED", "UPDATED", "DELETED", "VIEWED"],
           required: true,
         },
         performedBy: {
@@ -95,6 +94,10 @@ const consultationSchema = new mongoose.Schema(
         },
       },
     ],
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -130,16 +133,6 @@ consultationSchema.pre("save", async function (next) {
       }
     }
 
-    // Validate recommended tests with local dataset
-    if (this.recommendedTests && this.recommendedTests.length > 0) {
-      for (const test of this.recommendedTests) {
-        const { valid } = await validateTestName(test);
-        if (!valid) {
-          return next(new Error(`Invalid test name: ${test}`));
-        }
-      }
-    }
-
     // Validate medications
     if (this.medications && this.medications.length > 0) {
       for (const med of this.medications) {
@@ -167,14 +160,14 @@ consultationSchema.pre("save", async function (next) {
 });
 
 // Method to add audit trail for updates
-consultationSchema.methods.addAuditEntry = async function (action, performedBy, changes) {
+consultationSchema.methods.addAuditEntry = function (action, performedBy, changes) {
   this.auditTrail.push({
     action,
     performedBy,
     timestamp: new Date(),
     changes,
   });
-  await this.save();
+  // Remove the save() call to avoid multiple saves
 };
 
 export const Consultation = mongoose.model("Consultation", consultationSchema);

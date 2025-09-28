@@ -8,6 +8,9 @@ export class ConsultationController {
     this.addConsultation = this.addConsultation.bind(this);
     this.searchDiagnosisCodes = this.searchDiagnosisCodes.bind(this);
     this.searchTestNames = this.searchTestNames.bind(this);
+    this.getConsultationsByPatient = this.getConsultationsByPatient.bind(this);
+    this.updateConsultation = this.updateConsultation.bind(this);
+    this.deleteConsultation = this.deleteConsultation.bind(this);
   }
 
   async addConsultation(req, res) {
@@ -102,6 +105,82 @@ export class ConsultationController {
       });
     } catch (error) {
       logger.error("Error in searchTestNames controller", {
+        userId: req.user._id,
+        error: error.message,
+      });
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async getConsultationsByPatient(req, res) {
+    try {
+      logger.info("Processing get consultations by patient request", {
+        userId: req.user._id,
+        patientId: req.params.patientId,
+      });
+
+      const patientId = req.params.patientId;
+      const user = req.user;
+
+      const result = await this.consultationService.getConsultationsByPatient(patientId, user);
+
+      res.status(200).json(result);
+    } catch (error) {
+      logger.error("Error in getConsultationsByPatient controller", {
+        userId: req.user._id,
+        error: error.message,
+      });
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async updateConsultation(req, res) {
+    try {
+      logger.info("Processing update consultation request", {
+        userId: req.user._id,
+        consultationId: req.params.id,
+      });
+
+      const id = req.params.id;
+      const consultationData = req.body;
+      const user = req.user;
+
+      const result = await this.consultationService.updateConsultation(id, consultationData, user);
+
+      res.status(200).json(result);
+    } catch (error) {
+      logger.error("Error in updateConsultation controller", {
+        userId: req.user._id,
+        error: error.message,
+      });
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async deleteConsultation(req, res) {
+    try {
+      logger.info("Processing delete consultation request", {
+        userId: req.user._id,
+        consultationId: req.params.id,
+      });
+
+      const id = req.params.id;
+      const user = req.user;
+
+      const result = await this.consultationService.deleteConsultation(id, user);
+
+      res.status(200).json(result);
+    } catch (error) {
+      logger.error("Error in deleteConsultation controller", {
         userId: req.user._id,
         error: error.message,
       });

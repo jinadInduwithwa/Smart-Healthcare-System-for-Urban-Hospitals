@@ -11,6 +11,9 @@ export class ConsultationService {
     this.addConsultation = this.addConsultation.bind(this);
     this.searchDiagnosisCodes = this.searchDiagnosisCodes.bind(this);
     this.searchTestNames = this.searchTestNames.bind(this);
+    this.getConsultationsByPatient = this.getConsultationsByPatient.bind(this);
+    this.updateConsultation = this.updateConsultation.bind(this);
+    this.deleteConsultation = this.deleteConsultation.bind(this);
   }
 
   async addConsultation(consultationData, user) {
@@ -160,6 +163,142 @@ export class ConsultationService {
         error.message || "Failed to search test names",
         error.statusCode || 500
       );
+    }
+  }
+
+  async getConsultationsByPatient(patientId, user) {
+    try {
+      logger.info("Fetching consultations for patient", { patientId, userId: user._id });
+
+      // Validate patient ID
+      if (!mongoose.Types.ObjectId.isValid(patientId)) {
+        throw new AppError("Invalid patient ID format", 400);
+      }
+
+      // Ensure the user is the patient or a doctor
+      if (user.role !== "DOCTOR" && user._id.toString() !== patientId) {
+        throw new AppError("Unauthorized to view consultations", 403);
+      }
+
+      const consultations = await Consultation.find({ patient: patientId, deletedAt: null })
+        .populate("patient", "name email")
+        .populate("doctor", "name email")
+        .sort({ consultationDate: -1 })
+        .exec();
+
+      logger.info(`Found ${consultations.length} consultations for patient ${patientId}`);
+
+      return {
+        success: true,
+        data: consultations,
+        message: "Consultations fetched successfully",
+      };
+    } catch (error) {
+      logger.error("Failed to fetch consultations", { patientId, error: error.message });
+      throw new AppError(error.message || "Failed to fetch consultations", error.statusCode || 500);
+    }
+  }
+
+  async updateConsultation(id, consultationData, user) {
+    try {
+      logger.info("Attempting to update consultation", { id, userId: user._id });
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new AppError("Invalid consultation ID format", 400);
+      }
+
+      const consultation = await Consultation.findById(id);
+      if (!consultation || consultation.deletedAt) {
+        throw new AppError("Consultation not found", 404);
+      }
+
+      // Ensure only the creating doctor can update
+      if (user.role !== "DOCTOR" || consultation.doctor.toString() !== user._id.toString()) {
+        throw new AppError("Unauthorized to update this consultation", 403);
+      }
+
+      // Update fields
+      if (consultationData.consultationDate) consultation.consultationDate = new Date(consultationData.consultationDate);
+      if (consultationData.status) consultation.status = consultationData.status;
+      if (consultationData.diagnosis) {
+        consultation.diagnosis = [];
+        for (const diag of consultationData.diagnosis) {
+          const { code, description } = await validateDiagnosisCode(diag.code);
+          consultation.diagnosis.push({ code, description: diag.description || description });
+        }
+      }
+      if (consultationData.clinicalNotes) consultation.clinicalNotes = consultationData.clinicalNotes;
+      if (consultationData.medications) consultation.medications = consultationData.medications;
+      if (consultationData.recommendedTests) {
+        consultation.recommendedTests = [];
+        for (const test of consultationData.recommendedTests) {
+          const { name } = await validateTestName(test);
+          consultation.recommendedTests.push(name);
+        }
+      }
+
+      // Add audit entry without saving
+      consultation.addAuditEntry("UPDATED", user._id, consultationData);
+
+      // Save all changes at once
+      const updatedConsultation = await consultation.save();
+
+      // Populate patient and doctor fields
+      const populatedConsultation = await Consultation.findById(updatedConsultation._id)
+        .populate("patient", "name email")
+        .populate("doctor", "name email")
+        .exec();
+
+      logger.info("Consultation updated successfully", { id });
+
+      return {
+        success: true,
+        data: populatedConsultation,
+        message: "Consultation updated successfully",
+      };
+    } catch (error) {
+      logger.error("Failed to update consultation", { id, error: error.message });
+      throw new AppError(error.message || "Failed to update consultation", error.statusCode || 500);
+    }
+  }
+
+  async deleteConsultation(id, user) {
+    try {
+      logger.info("Attempting to delete consultation", { id, userId: user._id });
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        throw new AppError("Invalid consultation ID format", 400);
+      }
+
+      const consultation = await Consultation.findById(id);
+      if (!consultation || consultation.deletedAt) {
+        throw new AppError("Consultation not found", 404);
+      }
+
+      // Ensure only the creating doctor can delete
+      if (user.role !== "DOCTOR" || consultation.doctor.toString() !== user._id.toString()) {
+        throw new AppError("Unauthorized to delete this consultation", 403);
+      }
+
+      // Mark as deleted
+      consultation.deletedAt = new Date();
+
+      // Add audit entry without saving
+      consultation.addAuditEntry("DELETED", user._id, { deletedAt: consultation.deletedAt });
+
+      // Save all changes at once
+      await consultation.save();
+
+      logger.info("Consultation deleted successfully", { id });
+
+      return {
+        success: true,
+        data: null,
+        message: "Consultation deleted successfully",
+      };
+    } catch (error) {
+      logger.error("Failed to delete consultation", { id, error: error.message });
+      throw new AppError(error.message || "Failed to delete consultation", error.statusCode || 500);
     }
   }
 }

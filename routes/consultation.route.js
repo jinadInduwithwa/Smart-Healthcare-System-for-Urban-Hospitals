@@ -1,7 +1,7 @@
 import express from "express";
 import { ConsultationController } from "../controllers/consultation.controller.js";
 import { auth, authorize } from "../middleware/auth.middleware.js";
-import { validateAddConsultation, validateSearchDiagnosis } from "../validation/consultation.validation.js";
+import { validateAddConsultation, validateSearchDiagnosis, validateUpdateConsultation } from "../validation/consultation.validation.js";
 
 const router = express.Router();
 const consultationController = new ConsultationController();
@@ -31,6 +31,30 @@ router.get(
   authorize("DOCTOR"),
   validateSearchDiagnosis, // Reuse same validation
   consultationController.searchTestNames
+);
+
+// Protected route for viewing consultations by patient (doctors or patients can view their own)
+router.get(
+  "/patient/:patientId",
+  auth,
+  consultationController.getConsultationsByPatient
+);
+
+// Protected route for updating a consultation (only the creating doctor)
+router.patch(
+  "/:id",
+  auth,
+  authorize("DOCTOR"),
+  validateUpdateConsultation,
+  consultationController.updateConsultation
+);
+
+// Protected route for deleting a consultation (only the creating doctor)
+router.delete(
+  "/:id",
+  auth,
+  authorize("DOCTOR"),
+  consultationController.deleteConsultation
 );
 
 export default router;
