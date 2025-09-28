@@ -364,11 +364,11 @@ export const getAllPatients = async () => {
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${BASE_URL}/consultations/patients`, {
+    const response = await fetch(`${BASE_URL}/consult/patients`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+         "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
 
