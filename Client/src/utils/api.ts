@@ -491,11 +491,11 @@ export const getConsultationsByPatient = async (patientId: string) => {
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${BASE_URL}/consultations/patient/${patientId}`, {
+    const response = await fetch(`${BASE_URL}/consult/patient/${patientId}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
 

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllPatients } from '../../utils/api'; // Adjust the import path as needed
@@ -12,7 +13,8 @@ interface Address {
 }
 
 interface Patient {
-  _id: string;
+  _id: string; // Consultation record ID
+  userId: string; // User ID (userId._id from API)
   email: string;
   role: string;
   firstName: string;
@@ -47,14 +49,15 @@ const AllPatientRecords: React.FC = () => {
           // Transform API response to match Patient interface
           const transformedPatients: Patient[] = response.data.map((patient: any) => ({
             _id: patient._id,
+            userId: patient.userId._id, // Map userId._id
             email: patient.userId.email,
             role: patient.userId.role,
             firstName: patient.userId.firstName,
             lastName: patient.userId.lastName,
             address: patient.userId.address,
-            phone: patient.userId.phone || 'N/A', // Fallback if phone is missing
-            isVerified: patient.userId.isActive, // Map isActive to isVerified
-            roleDocumentId: patient.roleDocumentId || 'N/A', // Fallback if missing
+            phone: patient.userId.phone || 'N/A',
+            isVerified: patient.userId.isActive,
+            roleDocumentId: patient.roleDocumentId || 'N/A',
             healthCardId: patient.healthCardId,
             dateOfBirth: patient.dateOfBirth,
             gender: patient.gender,
@@ -125,12 +128,12 @@ const AllPatientRecords: React.FC = () => {
     }
   };
 
-  const handleAddConsultation = (_id: string) => {
-    navigate(`/doctor-dashboard/consultation/add/${_id}`);
+  const handleAddConsultation = (userId: string) => {
+    navigate(`/doctor-dashboard/consultation/add/${userId}`);
   };
 
-  const handleViewDetails = (_id: string) => {
-    navigate(`/doctor-dashboard/consultation/patient/${_id}`);
+  const handleViewDetails = (userId: string) => {
+    navigate(`/doctor-dashboard/consultation/patient/${userId}`);
   };
 
   const indexOfLastPatient = currentPage * patientsPerPage;
@@ -230,13 +233,13 @@ const AllPatientRecords: React.FC = () => {
             </p>
             <div className="flex flex-col space-y-2 mt-3">
               <button
-                onClick={() => handleAddConsultation(patient._id)}
+                onClick={() => handleAddConsultation(patient.userId)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 w-full text-sm"
               >
                 Add Consultation
               </button>
               <button
-                onClick={() => handleViewDetails(patient._id)}
+                onClick={() => handleViewDetails(patient.userId)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 w-full text-sm"
               >
                 View Details
@@ -315,13 +318,13 @@ const AllPatientRecords: React.FC = () => {
                 <td className="px-4 py-3">
                   <div className="flex flex-col space-y-2">
                     <button
-                      onClick={() => handleAddConsultation(patient._id)}
+                      onClick={() => handleAddConsultation(patient.userId)}
                       className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 w-full"
                     >
                       Add Consultation
                     </button>
                     <button
-                      onClick={() => handleViewDetails(patient._id)}
+                      onClick={() => handleViewDetails(patient.userId)}
                       className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 w-full"
                     >
                       View Details

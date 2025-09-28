@@ -17,7 +17,7 @@ const DoctorRoutes = () => {
         <Route path="overview" element={<Overview />} />
         <Route path="profile" element={<DoctorProfile />} />
          <Route path="patient-records/all" element={<AllPatientRecords />} /> 
-         <Route path="consultation/patient/:id" element={<AllConsultations />} />  
+         <Route path="consultation/patient/:patientId" element={<AllConsultations />} />  
           <Route path="consultation/add/:id" element={<AddConsultation />} /> 
         {/* Order-related routes grouped under /orders */}
         {/* <Route path="prescription">
