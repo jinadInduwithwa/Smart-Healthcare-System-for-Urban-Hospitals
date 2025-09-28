@@ -4,11 +4,13 @@ import mongoose from "mongoose";
 import logger from "../utils/logger.js";
 import { AppError } from "../utils/AppError.js";
 import { validateDiagnosisCode, searchDiagnosisCodes } from "../utils/icd.helper.js";
+import { validateTestName, searchTestNames } from "../utils/test.helper.js";
 
 export class ConsultationService {
   constructor() {
     this.addConsultation = this.addConsultation.bind(this);
     this.searchDiagnosisCodes = this.searchDiagnosisCodes.bind(this);
+    this.searchTestNames = this.searchTestNames.bind(this);
   }
 
   async addConsultation(consultationData, user) {
@@ -56,15 +58,24 @@ export class ConsultationService {
         throw new AppError("Invalid patient ID or role", 400);
       }
 
-      // Validate and fetch diagnosis codes using local dataset
+      // Validate diagnosis codes
       const validatedDiagnoses = [];
       if (diagnosis.length > 0) {
         for (const diag of diagnosis) {
           const { code, description } = await validateDiagnosisCode(diag.code);
           validatedDiagnoses.push({
             code,
-            description: diag.description || description, // Use provided or dataset description
+            description: diag.description || description,
           });
+        }
+      }
+
+      // Validate recommended tests
+      const validatedTests = [];
+      if (recommendedTests.length > 0) {
+        for (const test of recommendedTests) {
+          const { name } = await validateTestName(test);
+          validatedTests.push(name);
         }
       }
 
@@ -76,7 +87,7 @@ export class ConsultationService {
         diagnosis: validatedDiagnoses,
         clinicalNotes,
         medications,
-        recommendedTests,
+        recommendedTests: validatedTests,
         status,
       });
 
@@ -126,6 +137,27 @@ export class ConsultationService {
       });
       throw new AppError(
         error.message || "Failed to search diagnosis codes",
+        error.statusCode || 500
+      );
+    }
+  }
+
+  async searchTestNames(query, maxResults = 10) {
+    try {
+      logger.info("Searching test names", { query, maxResults });
+      const results = await searchTestNames(query, maxResults);
+      return {
+        success: true,
+        data: results,
+        message: results.total > 0 ? `Found ${results.total} matching test names` : "No matching tests found",
+      };
+    } catch (error) {
+      logger.error("Failed to search test names", {
+        query,
+        error: error.message,
+      });
+      throw new AppError(
+        error.message || "Failed to search test names",
         error.statusCode || 500
       );
     }

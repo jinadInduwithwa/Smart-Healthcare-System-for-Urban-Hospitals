@@ -7,6 +7,7 @@ export class ConsultationController {
     this.consultationService = new ConsultationService();
     this.addConsultation = this.addConsultation.bind(this);
     this.searchDiagnosisCodes = this.searchDiagnosisCodes.bind(this);
+    this.searchTestNames = this.searchTestNames.bind(this);
   }
 
   async addConsultation(req, res) {
@@ -64,6 +65,43 @@ export class ConsultationController {
       });
     } catch (error) {
       logger.error("Error in searchDiagnosisCodes controller", {
+        userId: req.user._id,
+        error: error.message,
+      });
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async searchTestNames(req, res) {
+    try {
+      logger.info("Processing search test names request", {
+        userId: req.user._id,
+        query: req.query.query,
+      });
+
+      const { query, maxResults } = req.query;
+      if (!query) {
+        return res.status(400).json({
+          success: false,
+          message: "Query parameter is required",
+        });
+      }
+
+      const result = await this.consultationService.searchTestNames(
+        query,
+        parseInt(maxResults) || 10
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result.data,
+        message: result.message,
+      });
+    } catch (error) {
+      logger.error("Error in searchTestNames controller", {
         userId: req.user._id,
         error: error.message,
       });

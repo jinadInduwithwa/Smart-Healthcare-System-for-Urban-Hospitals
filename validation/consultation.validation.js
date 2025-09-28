@@ -1,4 +1,5 @@
 import { body, validationResult, query } from "express-validator";
+import { validateTestName } from "../utils/test.helper.js";
 import { AppError } from "../utils/AppError.js";
 
 export const validateAddConsultation = [
@@ -47,7 +48,19 @@ export const validateAddConsultation = [
   body("recommendedTests")
     .optional()
     .isArray()
-    .withMessage("Recommended tests must be an array"),
+    .withMessage("Recommended tests must be an array")
+    .custom(async (value) => {
+      if (value.length > 0) {
+        for (const test of value) {
+          try {
+            await validateTestName(test);
+          } catch (error) {
+            throw new Error(`Invalid test name: ${test}`);
+          }
+        }
+      }
+      return true;
+    }),
   body("status")
     .optional()
     .isIn(["SCHEDULED", "IN_PROGRESS", "COMPLETED", "CANCELLED"])

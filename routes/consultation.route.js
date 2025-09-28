@@ -24,4 +24,13 @@ router.get(
   consultationController.searchDiagnosisCodes
 );
 
+// Protected route for searching test names (only doctors)
+router.get(
+  "/search-tests",
+  auth,
+  authorize("DOCTOR"),
+  validateSearchDiagnosis, // Reuse same validation
+  consultationController.searchTestNames
+);
+
 export default router;

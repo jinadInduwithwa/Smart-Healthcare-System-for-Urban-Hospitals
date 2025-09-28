@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { User } from "./user.model.js";
 import { validateDiagnosisCode } from "../utils/icd.helper.js";
+import { validateTestName } from "../utils/test.helper.js";
 
 const consultationSchema = new mongoose.Schema(
   {
@@ -125,6 +126,16 @@ consultationSchema.pre("save", async function (next) {
         // Update description if not provided
         if (!diag.description) {
           diag.description = description;
+        }
+      }
+    }
+
+    // Validate recommended tests with local dataset
+    if (this.recommendedTests && this.recommendedTests.length > 0) {
+      for (const test of this.recommendedTests) {
+        const { valid } = await validateTestName(test);
+        if (!valid) {
+          return next(new Error(`Invalid test name: ${test}`));
         }
       }
     }
