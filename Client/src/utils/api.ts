@@ -1,7 +1,12 @@
-const BASE_URL = "http://localhost:3002/api";
+// src/utils/api.ts
 
-const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem("token") || ""}` });
+const BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:3002/api").replace(/\/$/, "");
 
+/** Always return a plain string->string map so it's valid HeadersInit */
+const authHeaders = (): Record<string, string> => {
+  const token = localStorage.getItem("token") ?? "";
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
 
 //------------------------ Auth APIs ----------------------
 
@@ -25,181 +30,92 @@ interface UserStatusData {
 }
 
 interface UserRoleData {
-  role: "PATIENT" | "DOCTOR" | "ADMIN" ;
+  role: "PATIENT" | "DOCTOR" | "ADMIN";
 }
 
 // login
 export const login = async (email: string, password: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/auth/login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Login failed");
-    }
-
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("Login error:", error);
-    throw error;
-  }
+  const response = await fetch(`${BASE_URL}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) throw new Error("Login failed");
+  return response.json();
 };
 
 export const register = async (userData: FormData) => {
-  try {
-    const response = await fetch(`${BASE_URL}/auth/register`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      throw response;
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Registration error:", error);
-    throw error;
-  }
+  const response = await fetch(`${BASE_URL}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) throw response;
+  return response.json();
 };
 
 export const verifyEmail = async (pin: string) => {
-  try {
-    const response = await fetch(`${BASE_URL}/auth/verify-email`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ pin }),
-    });
-
-    console.log("Verify Email Response Status:", response.status); // Debug log
-
-    // Clone the response to read the body multiple times
-    const responseClone = response.clone();
-    const responseText = await responseClone.text(); // Read raw text for debugging
-    console.log("Verify Email Response Text:", responseText);
-
-    if (!response.ok) {
-      throw new Error(`Verification failed with status ${response.status}: ${responseText}`);
-    }
-
-    const data = await response.json(); // Read JSON
-    return data; // Returns { status: 'success', message: 'Email verified successfully' }
-  } catch (error) {
-    console.error("Verification error:", error);
-    throw error instanceof Error ? error : new Error("Email verification failed");
-  }
+  const response = await fetch(`${BASE_URL}/auth/verify-email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ pin }),
+  });
+  const text = await response.clone().text(); // debug-friendly
+  if (!response.ok) throw new Error(`Verification failed (${response.status}): ${text}`);
+  return response.json();
 };
 
 // get profile
 export const getProfile = async () => {
-  try {
-    const response = await fetch(`${BASE_URL}/auth/profile`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw response;
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Profile fetch error:", error);
-    throw error;
-  }
+  const response = await fetch(`${BASE_URL}/auth/profile`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+  });
+  if (!response.ok) throw response;
+  return response.json();
 };
 
 // update profile
 export const updateProfile = async (userData: Partial<FormData>) => {
-  try {
-    const response = await fetch(`${BASE_URL}/auth/profile`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      throw response;
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Profile update error:", error);
-    throw error;
-  }
+  const response = await fetch(`${BASE_URL}/auth/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) throw response;
+  return response.json();
 };
 
 // get all users (for admin)
 export const getAllUsers = async () => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
 
-    const response = await fetch(`${BASE_URL}/auth/users`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to fetch users");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Fetch all users error:", error);
-    throw error;
+  const response = await fetch(`${BASE_URL}/auth/users`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch users");
   }
+  return response.json();
 };
 
 // get user by id (for admin)
 export const getUserById = async (userId: string) => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
 
-    const response = await fetch(`${BASE_URL}/auth/users/${userId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to fetch user");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Fetch user by ID error:", error);
-    throw error;
+  const response = await fetch(`${BASE_URL}/auth/users/${userId}`, {
+    method: "GET",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to fetch user");
   }
+  return response.json();
 };
 
 // update user (for admin)
@@ -207,204 +123,136 @@ export const updateUser = async (
   userId: string,
   userData: Partial<FormData & { password?: string; confirmPassword?: string }>
 ) => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
 
-    const response = await fetch(`${BASE_URL}/auth/users/${userId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(userData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update user");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Update user error:", error);
-    throw error;
+  const response = await fetch(`${BASE_URL}/auth/users/${userId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(userData),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update user");
   }
+  return response.json();
 };
 
 // delete user (for admin)
 export const deleteUser = async (userId: string) => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
 
-    const response = await fetch(`${BASE_URL}/auth/users/${userId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to delete user");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Delete user error:", error);
-    throw error;
+  const response = await fetch(`${BASE_URL}/auth/users/${userId}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to delete user");
   }
+  return response.json();
 };
 
-// get update user status (for admin)
+// update user status (for admin)
 export const updateUserStatus = async (userId: string, statusData: UserStatusData) => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
 
-    const response = await fetch(`${BASE_URL}/auth/users/${userId}/status`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(statusData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update user status");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Update user status error:", error);
-    throw error;
+  const response = await fetch(`${BASE_URL}/auth/users/${userId}/status`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(statusData),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update user status");
   }
+  return response.json();
 };
 
 // update user role (for admin)
 export const updateUserRole = async (userId: string, roleData: UserRoleData) => {
-  try {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      throw new Error("No authentication token found");
-    }
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
 
-    const response = await fetch(`${BASE_URL}/auth/users/${userId}/role`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(roleData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update user role");
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Update user role error:", error);
-    throw error;
+  const response = await fetch(`${BASE_URL}/auth/users/${userId}/role`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify(roleData),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Failed to update user role");
   }
+  return response.json();
 };
 
 // ---------------- Appointment APIs ----------------
-export const getSpecialties = async () => {
-  const res = await fetch(`${BASE_URL}/appointments/specialties`);
-  if (!res.ok) throw new Error("Failed to load specialties");
-  return res.json();
-};
 
-export const getDoctorsBySpecialty = async (specialty: string) => {
-  const res = await fetch(`${BASE_URL}/appointments/doctors?specialty=${encodeURIComponent(specialty)}`);
-  if (!res.ok) throw new Error("Failed to load doctors");
-  return res.json();
-};
+export async function getSpecialties() {
+  const r = await fetch(`${BASE_URL}/appointments/specialties`);
+  if (!r.ok) throw new Error("Failed to load specialties");
+  return r.json();
+}
 
-export const getSlots = async (doctorId: string, date?: string) => {
-  const qs = new URLSearchParams({ doctorId, ...(date ? { date } : {}) });
-  const res = await fetch(`${BASE_URL}/appointments/slots?${qs.toString()}`);
-  if (!res.ok) throw new Error("Failed to load slots");
-  return res.json();
-};
+export async function getDoctorsBySpecialty(s: string) {
+  const r = await fetch(`${BASE_URL}/appointments/doctors?specialty=${encodeURIComponent(s)}`);
+  if (!r.ok) throw new Error("Failed to load doctors");
+  return r.json();
+}
 
-export const holdSlot = async (slotId: string) => {
-  const res = await fetch(`${BASE_URL}/appointments/hold`, {
+export async function getSlots(doctorId: string, dateISO?: string) {
+  const r = await fetch(
+    `${BASE_URL}/appointments/slots?doctorId=${doctorId}${dateISO ? `&date=${dateISO}` : ""}`
+  );
+  if (!r.ok) throw new Error("Failed to load slots");
+  return r.json();
+}
+
+export async function createAppointment(doctorId: string, slotId: string) {
+  const r = await fetch(`${BASE_URL}/appointments`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
-    body: JSON.stringify({ slotId }),
-  });
-  if (!res.ok) throw new Error("Slot unavailable");
-  return res.json();
-};
-
-export const createAppointment = async (doctorId: string, slotId: string) => {
-  const res = await fetch(`${BASE_URL}/appointments`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
     body: JSON.stringify({ doctorId, slotId }),
   });
-  if (!res.ok) throw new Error("Failed to create appointment");
-  return res.json();
-};
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || "Failed to create appointment");
+  }
+  return r.json();
+}
 
-export const payAppointment = async (appointmentId: string) => {
-  const res = await fetch(`${BASE_URL}/appointments/pay`, {
+export async function payAppointment(appointmentId: string) {
+  const r = await fetch(`${BASE_URL}/appointments/pay`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token")}`,
-    },
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
     body: JSON.stringify({ appointmentId }),
   });
-  if (!res.ok) throw new Error("Payment failed");
-  return res.json();
-};
-
-// returns: [{ _id, startTime, endTime, isBooked }]
-export async function getDoctorSlots(doctorId: string, date: Date) {
-  const ymd = date.toISOString().slice(0, 10); // "YYYY-MM-DD"
-  const res = await fetch(
-    `${BASE_URL}/appointments/slots?doctorId=${doctorId}&date=${ymd}`,
-    { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } }
-  );
-  if (!res.ok) throw new Error("Failed to load time slots");
-  const json = await res.json();
-  return json.data as Array<{ _id: string; startTime: string; endTime: string }>;
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || "Payment failed");
+  }
+  return r.json();
 }
 
+// Patient's appointments (requires Authorization)
 export async function getMyAppointments() {
-  const res = await fetch(`${BASE_URL}/appointments/mine`, {
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-    },
-    credentials: "include",
+  const r = await fetch(`${BASE_URL}/appointments/mine`, {
+    headers: { ...authHeaders() } as HeadersInit,
   });
-  if (!res.ok) throw new Error("Failed to load appointments");
-  return res.json(); // -> { data: [...] }
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || (r.status === 401 ? "Unauthorized" : "Failed to load appointments"));
+  }
+  return r.json(); // { data: [...] }
 }
 
+// Optional helpers hitting /users/me if your backend supports them
 export async function getMe() {
-  const r = await fetch(`${BASE_URL}/users/me`, { headers: authHeaders(), credentials: "include" });
+  const r = await fetch(`${BASE_URL}/users/me`, {
+    headers: { ...authHeaders() } as HeadersInit,
+  });
   if (!r.ok) throw new Error("Failed to load user");
   const j = await r.json();
   return j.data ?? j;
@@ -413,8 +261,7 @@ export async function getMe() {
 export async function updateMe(payload: any) {
   const r = await fetch(`${BASE_URL}/users/me`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    credentials: "include",
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
     body: JSON.stringify(payload),
   });
   if (!r.ok) throw new Error("Failed to update user");
@@ -427,8 +274,7 @@ export async function uploadAvatar(file: File) {
   fd.append("avatar", file);
   const r = await fetch(`${BASE_URL}/users/me/avatar`, {
     method: "PUT",
-    headers: authHeaders(),
-    credentials: "include",
+    headers: { ...authHeaders() } as HeadersInit, // don't set Content-Type for FormData
     body: fd,
   });
   if (!r.ok) throw new Error("Failed to upload avatar");
@@ -439,8 +285,7 @@ export async function uploadAvatar(file: File) {
 export async function changePassword(payload: { oldPassword: string; newPassword: string }) {
   const r = await fetch(`${BASE_URL}/auth/change-password`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() },
-    credentials: "include",
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
     body: JSON.stringify(payload),
   });
   if (!r.ok) throw new Error("Password change failed");

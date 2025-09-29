@@ -1,18 +1,23 @@
-import express from "express";
-import { AppointmentsController } from "../controllers/appointments.controller.js";
+// routes/appointments.routes.js
+import { Router } from "express";
 import { auth } from "../middleware/auth.middleware.js";
+import {
+  getSpecialties,
+  getDoctors,
+  getSlots,
+  postCreate,
+  postPay,
+  getMine,
+} from "../controllers/appointments.controller.js";
 
-const router = express.Router();
-const ctrl = new AppointmentsController();
+const router = Router();
 
-// Public (for browsing specialties/doctors/slots)
-router.get("/specialties", ctrl.getSpecialties);
-router.get("/doctors",     ctrl.getDoctors);
-router.get("/slots",       ctrl.getSlots);
+router.get("/specialties", getSpecialties);
+router.get("/doctors", getDoctors);
+router.get("/slots", getSlots);
 
-// Protected (must be logged in as PATIENT)
-router.post("/hold",   auth, ctrl.postHold);
-router.post("/",       auth, ctrl.postCreate);
-router.post("/pay",    auth, ctrl.postPay);
+router.post("/", auth, postCreate);
+router.post("/pay", auth, postPay);
+router.get("/mine", auth, getMine);
 
 export default router;

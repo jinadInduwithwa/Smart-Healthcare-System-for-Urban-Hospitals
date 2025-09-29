@@ -5,10 +5,8 @@ import {
   getSpecialties,
   getDoctorsBySpecialty,
   getSlots,
-  holdSlot,
   createAppointment,
   payAppointment,
-  getDoctorSlots,
 } from "@/utils/api";
 import { toast } from "react-toastify";
 
@@ -24,6 +22,9 @@ type Slot = { _id: string; date: string; startTime: string; endTime: string };
 const cx = (...xs: (string | false | undefined)[]) => xs.filter(Boolean).join(" ");
 const avatar = (name: string) =>
   `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E6F0FF&color=0F3D87`;
+
+// ➜ Feature flag: skip payment while your teammate finishes checkout
+const DEV_SKIP_PAYMENT = import.meta.env.VITE_DEV_SKIP_PAYMENT === "true";
 
 export default function BookAppointment() {
   // Specialties (tabs)
@@ -96,27 +97,45 @@ export default function BookAppointment() {
       .finally(() => setLoadingSlots(false));
   }, [selectedDoctor, dateISO]);
 
-  // CTA click: hold slot, create appointment, open payment
+  // CTA click
   const startBooking = async () => {
     if (!selectedDoctor || !selectedSlot) return;
     try {
-      setBusy(true);
-      await holdSlot(selectedSlot);
+      setBusy(true);      
+
+      // 2) Create the appointment (status: PENDING)
       const res = await createAppointment(selectedDoctor, selectedSlot);
-      setAppointmentId(res.data._id);
+      const apptId = res.data._id as string;
+
+      // 3) Dev-mode: auto-confirm without showing payment modal
+      if (DEV_SKIP_PAYMENT) {
+        await payAppointment(apptId);
+        toast.success("Appointment booked!");
+        // refresh slots to reflect the taken time
+        const r = await getSlots(selectedDoctor, dateISO);
+        setSlots(r.data || []);
+        setSelectedSlot("");
+        setAppointmentId(null);
+        return;
+      }
+
+      // 4) Normal flow: open payment modal
+      setAppointmentId(apptId);
       setPayOpen(true);
     } catch (e: any) {
       toast.error(e?.message || "Could not reserve slot. Please try another.");
       // refresh slots
-      const r = await getSlots(selectedDoctor, dateISO);
-      setSlots(r.data || []);
-      setSelectedSlot("");
+      try {
+        const r = await getSlots(selectedDoctor, dateISO);
+        setSlots(r.data || []);
+        setSelectedSlot("");
+      } catch {}
     } finally {
       setBusy(false);
     }
   };
 
-  // Payment submit
+  // Payment submit (used only when DEV_SKIP_PAYMENT=false)
   const handlePay = async () => {
     if (!appointmentId) return;
     try {
@@ -186,12 +205,17 @@ export default function BookAppointment() {
                   active ? "border-blue-600 shadow-sm" : "hover:shadow-md"
                 )}
               >
-                <img src={avatar(name)} alt={name} className="w-14 h-14 rounded-full border object-cover" />
+                <img
+                  src={avatar(name)}
+                  alt={name}
+                  className="w-14 h-14 rounded-full border object-cover"
+                />
                 <div className="flex-1">
                   <div className="font-semibold text-slate-800">{name}</div>
                   <div className="text-sm text-slate-600">{d.specialization}</div>
                   <div className="mt-1 text-amber-500">
-                    {"★".repeat(5)} <span className="text-slate-500 text-xs ml-1">{rating.toFixed(1)}</span>
+                    {"★".repeat(5)}{" "}
+                    <span className="text-slate-500 text-xs ml-1">{rating.toFixed(1)}</span>
                   </div>
                 </div>
               </button>
@@ -262,12 +286,12 @@ export default function BookAppointment() {
               : "bg-blue-600 hover:bg-blue-700 text-white"
           )}
         >
-          {busy ? "Please wait…" : "Make Payment and Book Now"}
+          {busy ? "Please wait…" : DEV_SKIP_PAYMENT ? "Book Now" : "Make Payment and Book Now"}
         </button>
       </div>
 
-      {/* Payment modal (lightweight, same page) */}
-      {payOpen && (
+      {/* Payment modal (used only when DEV_SKIP_PAYMENT is false) */}
+      {!DEV_SKIP_PAYMENT && payOpen && (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40">
           <div className="w-full md:max-w-lg bg-white rounded-t-2xl md:rounded-2xl p-5 shadow-xl">
             <div className="flex items-center justify-between mb-3">

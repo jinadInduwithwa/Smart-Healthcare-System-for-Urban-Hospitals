@@ -14,7 +14,8 @@
     "start": "node server.js",
     "test": "jest --coverage",
     "test:frontend": "cd Client && pnpm test",
-    "test:all": "pnpm test && pnpm run test:frontend"
+    "test:all": "pnpm test && pnpm run test:frontend",
+    "seed:slots": "node scripts/seed-slots.mjs"
   },
   "keywords": [
     "healthcare",
