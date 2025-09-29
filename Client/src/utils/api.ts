@@ -1,5 +1,7 @@
 const BASE_URL = "http://localhost:3002/api";
 
+const authHeaders = () => ({ Authorization: `Bearer ${localStorage.getItem("token") || ""}` });
+
 
 //------------------------ Auth APIs ----------------------
 
@@ -318,3 +320,129 @@ export const updateUserRole = async (userId: string, roleData: UserRoleData) => 
   }
 };
 
+// ---------------- Appointment APIs ----------------
+export const getSpecialties = async () => {
+  const res = await fetch(`${BASE_URL}/appointments/specialties`);
+  if (!res.ok) throw new Error("Failed to load specialties");
+  return res.json();
+};
+
+export const getDoctorsBySpecialty = async (specialty: string) => {
+  const res = await fetch(`${BASE_URL}/appointments/doctors?specialty=${encodeURIComponent(specialty)}`);
+  if (!res.ok) throw new Error("Failed to load doctors");
+  return res.json();
+};
+
+export const getSlots = async (doctorId: string, date?: string) => {
+  const qs = new URLSearchParams({ doctorId, ...(date ? { date } : {}) });
+  const res = await fetch(`${BASE_URL}/appointments/slots?${qs.toString()}`);
+  if (!res.ok) throw new Error("Failed to load slots");
+  return res.json();
+};
+
+export const holdSlot = async (slotId: string) => {
+  const res = await fetch(`${BASE_URL}/appointments/hold`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+    body: JSON.stringify({ slotId }),
+  });
+  if (!res.ok) throw new Error("Slot unavailable");
+  return res.json();
+};
+
+export const createAppointment = async (doctorId: string, slotId: string) => {
+  const res = await fetch(`${BASE_URL}/appointments`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+    body: JSON.stringify({ doctorId, slotId }),
+  });
+  if (!res.ok) throw new Error("Failed to create appointment");
+  return res.json();
+};
+
+export const payAppointment = async (appointmentId: string) => {
+  const res = await fetch(`${BASE_URL}/appointments/pay`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+    body: JSON.stringify({ appointmentId }),
+  });
+  if (!res.ok) throw new Error("Payment failed");
+  return res.json();
+};
+
+// returns: [{ _id, startTime, endTime, isBooked }]
+export async function getDoctorSlots(doctorId: string, date: Date) {
+  const ymd = date.toISOString().slice(0, 10); // "YYYY-MM-DD"
+  const res = await fetch(
+    `${BASE_URL}/appointments/slots?doctorId=${doctorId}&date=${ymd}`,
+    { headers: { Authorization: `Bearer ${localStorage.getItem("token") || ""}` } }
+  );
+  if (!res.ok) throw new Error("Failed to load time slots");
+  const json = await res.json();
+  return json.data as Array<{ _id: string; startTime: string; endTime: string }>;
+}
+
+export async function getMyAppointments() {
+  const res = await fetch(`${BASE_URL}/appointments/mine`, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+    },
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to load appointments");
+  return res.json(); // -> { data: [...] }
+}
+
+export async function getMe() {
+  const r = await fetch(`${BASE_URL}/users/me`, { headers: authHeaders(), credentials: "include" });
+  if (!r.ok) throw new Error("Failed to load user");
+  const j = await r.json();
+  return j.data ?? j;
+}
+
+export async function updateMe(payload: any) {
+  const r = await fetch(`${BASE_URL}/users/me`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error("Failed to update user");
+  const j = await r.json();
+  return j.data ?? j;
+}
+
+export async function uploadAvatar(file: File) {
+  const fd = new FormData();
+  fd.append("avatar", file);
+  const r = await fetch(`${BASE_URL}/users/me/avatar`, {
+    method: "PUT",
+    headers: authHeaders(),
+    credentials: "include",
+    body: fd,
+  });
+  if (!r.ok) throw new Error("Failed to upload avatar");
+  const j = await r.json();
+  return j.data ?? j; // { avatarUrl }
+}
+
+export async function changePassword(payload: { oldPassword: string; newPassword: string }) {
+  const r = await fetch(`${BASE_URL}/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error("Password change failed");
+  return r.json();
+}
