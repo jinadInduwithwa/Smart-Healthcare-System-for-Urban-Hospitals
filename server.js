@@ -1,4 +1,4 @@
-// Server
+// server.js
 import "dotenv/config";
 import express from "express";
 import mongoose from "mongoose";
@@ -7,6 +7,7 @@ import morgan from "morgan";
 import cookieParser from "cookie-parser";
 import logger from "./utils/logger.js";
 import authRoutes from "./routes/auth.routes.js";
+import doctorMgrRoutes from './routes/doctorMgr.routes.js';
 
 const app = express();
 
@@ -21,9 +22,9 @@ app.get("/api/test", (req, res) => {
   res.json({ message: "Backend working fine" });
 });
 
-
 // Routes
 app.use("/api/auth", authRoutes);
+app.use('/api', doctorMgrRoutes); // Updated to mount at /api
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -33,7 +34,7 @@ app.use((err, req, res, next) => {
 
 // Database connection
 mongoose
-  .connect(process.env.MONGODB_URI)
+  .connect(process.env.MONGODB_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
     logger.info("Connected to MongoDB", {
       timestamp: new Date().toISOString(),
