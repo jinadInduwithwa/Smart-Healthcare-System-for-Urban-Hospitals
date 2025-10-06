@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import logger from "./utils/logger.js";
 import authRoutes from "./routes/auth.routes.js";
 import doctorMgrRoutes from './routes/doctorMgr.routes.js';
+import patientMgrRoutes from "./routes/patientMgr.routes.js";
 
 const app = express();
 
@@ -24,7 +25,8 @@ app.get("/api/test", (req, res) => {
 
 // Routes
 app.use("/api/auth", authRoutes);
-app.use('/api', doctorMgrRoutes); // Updated to mount at /api
+app.use('/api', doctorMgrRoutes); 
+app.use("/api", patientMgrRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
