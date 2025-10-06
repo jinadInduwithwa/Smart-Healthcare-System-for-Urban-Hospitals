@@ -396,7 +396,7 @@ function DoctorManagement() {
   return (
     <div className="p-6 max-w-2xl mx-auto">
       <Toaster position="top-right" reverseOrder={false} />
-      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">Add/Edit Doctor</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-gray-100">Add Doctor</h1>
       <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6">
         <div className="grid grid-cols-1 gap-4">
           <div>
