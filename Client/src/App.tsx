@@ -16,7 +16,9 @@ const DoctorRoutes = () => {
         {/* Relative path */}
         <Route path="overview" element={<Overview />} />
         <Route path="profile" element={<DoctorProfile />} />
-
+         <Route path="patient-records/all" element={<AllPatientRecords />} /> 
+         <Route path="consultation/patient/:id" element={<AllConsultations />} />  
+          <Route path="consultation/add/:id" element={<AddConsultation />} /> 
         {/* Order-related routes grouped under /orders */}
         {/* <Route path="prescription">
           <Route path="new" element={<Newprescription />} />
@@ -36,6 +38,9 @@ import Profile from "./pages/Profile";
 import MobileBottomNav from "./components/UI/MobileBottomNav";
 import Overview from "./pages/doctor/Overview";
 import SignUp_Doctor from "./pages/SignUp_Doctor";
+import AllPatientRecords from "./pages/doctor/AllPatientRecords";
+import AllConsultations from "./pages/doctor/AllConsultations";
+import AddConsultation from "./pages/doctor/AddConsultation";
 
 function App() {
   console.log("App component rendered");

@@ -1,0 +1,27 @@
+[
+  {
+    "name": "Spirometry",
+    "category": "Pulmonary",
+    "description": "Measures lung function, specifically the volume and speed of air exhaled."
+  },
+  {
+    "name": "Blood culture",
+    "category": "Microbiology",
+    "description": "Detects bacteria or fungi in the blood to diagnose infections."
+  },
+  {
+    "name": "Complete Blood Count",
+    "category": "Hematology",
+    "description": "Evaluates overall health and detects disorders like anemia or infection."
+  },
+  {
+    "name": "Chest X-ray",
+    "category": "Radiology",
+    "description": "Images the chest to diagnose lung and heart conditions."
+  },
+  {
+    "name": "Electrocardiogram",
+    "category": "Cardiology",
+    "description": "Records electrical activity of the heart to detect cardiac issues."
+  }
+]
