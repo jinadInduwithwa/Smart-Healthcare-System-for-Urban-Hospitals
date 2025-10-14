@@ -9,6 +9,7 @@ export class ConsultationController {
     this.getAllPatients = this.getAllPatients.bind(this);
     this.searchDiagnosisCodes = this.searchDiagnosisCodes.bind(this);
     this.searchTestNames = this.searchTestNames.bind(this);
+    this.searchDrugs = this.searchDrugs.bind(this);
     this.getConsultationsByPatient = this.getConsultationsByPatient.bind(this);
     this.updateConsultation = this.updateConsultation.bind(this);
     this.deleteConsultation = this.deleteConsultation.bind(this);
@@ -132,6 +133,43 @@ export class ConsultationController {
       });
     } catch (error) {
       logger.error("Error in searchTestNames controller", {
+        userId: req.user._id,
+        error: error.message,
+      });
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  async searchDrugs(req, res) {
+    try {
+      logger.info("Processing search drugs request", {
+        userId: req.user._id,
+        query: req.query.query,
+      });
+
+      const { query, maxResults } = req.query;
+      if (!query) {
+        return res.status(400).json({
+          success: false,
+          message: "Query parameter is required",
+        });
+      }
+
+      const result = await this.consultationService.searchDrugs(
+        query,
+        parseInt(maxResults) || 10
+      );
+
+      res.status(200).json({
+        success: true,
+        data: result.data,
+        message: result.message,
+      });
+    } catch (error) {
+      logger.error("Error in searchDrugs controller", {
         userId: req.user._id,
         error: error.message,
       });

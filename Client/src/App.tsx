@@ -1,8 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-
+import { ToastProvider } from "@/context/ToastContext";
 
 //-------------- doctor --------------------------------------
 import DoctorLayout from "./pages/doctor/DoctorLayout";
@@ -15,10 +13,11 @@ const DoctorRoutes = () => {
         <Route index element={<Navigate to="overview" replace />} />{" "}
         {/* Relative path */}
         <Route path="overview" element={<Overview />} />
-        <Route path="profile" element={<DoctorProfile />} />
+        <Route path="profile" element={<DoctorProfile />} />card
          <Route path="patient-records/all" element={<AllPatientRecords />} /> 
-         <Route path="consultation/patient/:id" element={<AllConsultations />} />  
-          <Route path="consultation/add/:id" element={<AddConsultation />} /> 
+         <Route path="patient-records/card" element={<SearchCard />} /> 
+         <Route path="consultation/patient/:patientId" element={<AllConsultations />} />  
+         <Route path="consultation/add/:patientId" element={<AddConsultation />} /> 
         {/* Order-related routes grouped under /orders */}
         {/* <Route path="prescription">
           <Route path="new" element={<Newprescription />} />
@@ -41,24 +40,14 @@ import SignUp_Doctor from "./pages/SignUp_Doctor";
 import AllPatientRecords from "./pages/doctor/AllPatientRecords";
 import AllConsultations from "./pages/doctor/AllConsultations";
 import AddConsultation from "./pages/doctor/AddConsultation";
+import SearchCard from "./pages/doctor/SearchCard";
 
 function App() {
   console.log("App component rendered");
   return (
     <BrowserRouter>
       <AuthProvider>
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-            />
+        <ToastProvider>
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route path="/" element={<Home />} />
@@ -74,6 +63,7 @@ function App() {
               />
             </Routes>
             <MobileBottomNav />
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

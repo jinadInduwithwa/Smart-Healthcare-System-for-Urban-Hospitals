@@ -1,5 +1,7 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getAllPatients } from '../../utils/api'; // Adjust the import path as needed
 
 // Define interfaces for TypeScript
 interface Address {
@@ -11,7 +13,8 @@ interface Address {
 }
 
 interface Patient {
-  _id: string;
+  _id: string; // Consultation record ID
+  userId: string; // User ID (userId._id from API)
   email: string;
   role: string;
   firstName: string;
@@ -25,70 +28,6 @@ interface Patient {
   gender: string;
 }
 
-// Mock data
-const mockData: Patient[] = [
-  {
-    _id: '671c8f1a4b5c2d3e4f5a6b7c',
-    email: 'qj@gmail.com',
-    role: 'PATIENT',
-    firstName: 'John',
-    lastName: 'Doe',
-    address: {
-      street: '123 Main Street',
-      city: 'New York',
-      state: 'NY',
-      zipCode: '10001',
-      country: 'USA',
-    },
-    phone: '+1234567890',
-    isVerified: false,
-    roleDocumentId: '671c8f1a4b5c2d3e4f5a6b7d',
-    healthCardId: 'HC-123456',
-    dateOfBirth: '1990-01-01T00:00:00.000Z',
-    gender: 'Male',
-  },
-  {
-    _id: '671c8f1a4b5c2d3e4f5a6b7e',
-    email: 'jane@example.com',
-    role: 'PATIENT',
-    firstName: 'Jane',
-    lastName: 'Smith',
-    address: {
-      street: '456 Elm Street',
-      city: 'Los Angeles',
-      state: 'CA',
-      zipCode: '90001',
-      country: 'USA',
-    },
-    phone: '+1987654321',
-    isVerified: true,
-    roleDocumentId: '671c8f1a4b5c2d3e4f5a6b7f',
-    healthCardId: 'HC-654321',
-    dateOfBirth: '1985-05-15T00:00:00.000Z',
-    gender: 'Female',
-  },
-  {
-    _id: '671c8f1a4b5c2d3e4f5a6b7f',
-    email: 'bob@example.com',
-    role: 'PATIENT',
-    firstName: 'Bob',
-    lastName: 'Johnson',
-    address: {
-      street: '789 Oak Street',
-      city: 'Chicago',
-      state: 'IL',
-      zipCode: '60601',
-      country: 'USA',
-    },
-    phone: '+1122334455',
-    isVerified: true,
-    roleDocumentId: '671c8f1a4b5c2d3e4f5a6b80',
-    healthCardId: 'HC-789012',
-    dateOfBirth: '1975-03-20T00:00:00.000Z',
-    gender: 'Male',
-  },
-];
-
 const AllPatientRecords: React.FC = () => {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
@@ -98,13 +37,44 @@ const AllPatientRecords: React.FC = () => {
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
   const patientsPerPage = 10;
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate fetching data
-    setPatients(mockData);
-    setFilteredPatients(mockData);
+    const fetchPatients = async () => {
+      try {
+        const response = await getAllPatients();
+        if (response.success) {
+          // Transform API response to match Patient interface
+          const transformedPatients: Patient[] = response.data.map((patient: any) => ({
+            _id: patient._id,
+            userId: patient.userId._id, // Map userId._id
+            email: patient.userId.email,
+            role: patient.userId.role,
+            firstName: patient.userId.firstName,
+            lastName: patient.userId.lastName,
+            address: patient.userId.address,
+            phone: patient.userId.phone || 'N/A',
+            isVerified: patient.userId.isActive,
+            roleDocumentId: patient.roleDocumentId || 'N/A',
+            healthCardId: patient.healthCardId,
+            dateOfBirth: patient.dateOfBirth,
+            gender: patient.gender,
+          }));
+          setPatients(transformedPatients);
+          setFilteredPatients(transformedPatients);
+          setError(null);
+        } else {
+          throw new Error(response.message || 'Failed to fetch patients');
+        }
+      } catch (err: any) {
+        console.error('Error fetching patients:', err);
+        setError('Failed to load patient records. Please check if the server is running or contact support.');
+      }
+    };
+
+    fetchPatients();
   }, []);
 
   useEffect(() => {
@@ -158,12 +128,12 @@ const AllPatientRecords: React.FC = () => {
     }
   };
 
-  const handleAddConsultation = (_id: string) => {
-    navigate(`/doctor-dashboard/consultation/add/${_id}`);
+  const handleAddConsultation = (userId: string) => {
+    navigate(`/doctor-dashboard/consultation/add/${userId}`);
   };
 
-  const handleViewDetails = (_id: string) => {
-    navigate(`/doctor-dashboard/consultation/patient/${_id}`);
+  const handleViewDetails = (userId: string) => {
+    navigate(`/doctor-dashboard/consultation/patient/${userId}`);
   };
 
   const indexOfLastPatient = currentPage * patientsPerPage;
@@ -178,12 +148,17 @@ const AllPatientRecords: React.FC = () => {
   };
 
   return (
-    <div className="sm:p-2  min-h-screen">
+    <div className="sm:p-2 min-h-screen">
       <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-blue-600 dark:text-blue-300">
         All Patient Records
       </h2>
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200 rounded-lg">
+          {error}
+        </div>
+      )}
       <div className="relative mb-4 sm:mb-6 w-full sm:w-1/2">
-       <input
+        <input
           type="text"
           placeholder="Search by name, email, or health card ID"
           value={searchTerm}
@@ -202,8 +177,6 @@ const AllPatientRecords: React.FC = () => {
             clipRule="evenodd"
           />
         </svg>
-
-
       </div>
       {/* Filters for mobile */}
       <div className="flex flex-col sm:hidden space-y-2 mb-4">
@@ -260,13 +233,13 @@ const AllPatientRecords: React.FC = () => {
             </p>
             <div className="flex flex-col space-y-2 mt-3">
               <button
-                onClick={() => handleAddConsultation(patient._id)}
+                onClick={() => handleAddConsultation(patient.userId)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 w-full text-sm"
               >
                 Add Consultation
               </button>
               <button
-                onClick={() => handleViewDetails(patient._id)}
+                onClick={() => handleViewDetails(patient.userId)}
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 w-full text-sm"
               >
                 View Details
@@ -345,13 +318,13 @@ const AllPatientRecords: React.FC = () => {
                 <td className="px-4 py-3">
                   <div className="flex flex-col space-y-2">
                     <button
-                      onClick={() => handleAddConsultation(patient._id)}
+                      onClick={() => handleAddConsultation(patient.userId)}
                       className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 w-full"
                     >
                       Add Consultation
                     </button>
                     <button
-                      onClick={() => handleViewDetails(patient._id)}
+                      onClick={() => handleViewDetails(patient.userId)}
                       className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 w-full"
                     >
                       View Details

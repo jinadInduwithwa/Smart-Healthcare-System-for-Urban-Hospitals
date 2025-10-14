@@ -1,4 +1,7 @@
+
 import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { getConsultationsByPatient } from '../../utils/api';
 
 // Define interface for Consultation
 interface Diagnosis {
@@ -27,76 +30,6 @@ interface Consultation {
   status: string;
 }
 
-// Mock data (multiple consultations)
-const mockData: Consultation[] = [
-  {
-    patientId: "68d895b03c66b57875a7b035",
-    consultationDate: "2025-09-28T10:00:00Z",
-    diagnosis: [
-      { code: "J45", description: "Asthma" },
-      { code: "A00.0" }
-    ],
-    clinicalNotes: {
-      subjective: "Patient reports shortness of breath and fever.",
-      objective: "BP 120/80, HR 78 bpm, temperature 38°C."
-    },
-    medications: [
-      {
-        drug: "Salbutamol",
-        dosage: "100 mcg",
-        frequency: "As needed"
-      },
-      {
-        drug: "Paracetamol",
-        dosage: "500 mg",
-        frequency: "Every 6 hours"
-      }
-    ],
-    recommendedTests: ["Spirometry", "Blood culture"],
-    status: "SCHEDULED"
-  },
-  {
-    patientId: "68d895b03c66b57875a7b036",
-    consultationDate: "2025-09-25T14:30:00Z",
-    diagnosis: [
-      { code: "E11", description: "Type 2 diabetes mellitus" }
-    ],
-    clinicalNotes: {
-      subjective: "Patient complains of frequent urination and fatigue.",
-      objective: "Blood glucose 180 mg/dL, BP 130/85."
-    },
-    medications: [
-      {
-        drug: "Metformin",
-        dosage: "500 mg",
-        frequency: "Twice daily"
-      }
-    ],
-    recommendedTests: ["HbA1c test"],
-    status: "COMPLETED"
-  },
-  {
-    patientId: "68d895b03c66b57875a7b037",
-    consultationDate: "2025-09-30T09:00:00Z",
-    diagnosis: [
-      { code: "I10", description: "Essential hypertension" }
-    ],
-    clinicalNotes: {
-      subjective: "Headache and dizziness reported.",
-      objective: "BP 150/90, HR 82 bpm."
-    },
-    medications: [
-      {
-        drug: "Amlodipine",
-        dosage: "5 mg",
-        frequency: "Once daily"
-      }
-    ],
-    recommendedTests: ["ECG"],
-    status: "SCHEDULED"
-  }
-];
-
 const AllConsultations: React.FC = () => {
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [filteredConsultations, setFilteredConsultations] = useState<Consultation[]>([]);
@@ -106,13 +39,60 @@ const AllConsultations: React.FC = () => {
   const [sortBy, setSortBy] = useState<string | null>(null);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [currentPage, setCurrentPage] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const consultationsPerPage = 10;
+  const { patientId } = useParams<{ patientId: string }>();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate fetching data
-    setConsultations(mockData);
-    setFilteredConsultations(mockData);
-  }, []);
+    const fetchConsultations = async () => {
+      if (!patientId) {
+        setError('No patient ID provided.');
+        return;
+      }
+      setIsLoading(true);
+      try {
+        const response = await getConsultationsByPatient(patientId);
+        if (response.success) {
+          // Transform API response to match Consultation interface
+          const transformedConsultations: Consultation[] = response.data.map((consult: any) => {
+            if (!consult.patient || !consult.patient._id) {
+              throw new Error('Invalid consultation data: patient ID is missing');
+            }
+            return {
+              patientId: consult.patient._id,
+              consultationDate: consult.consultationDate,
+              diagnosis: consult.diagnosis || [],
+              clinicalNotes: {
+                subjective: consult.clinicalNotes?.subjective || 'N/A',
+                objective: consult.clinicalNotes?.objective || 'N/A',
+              },
+              medications: consult.medications || [],
+              recommendedTests: consult.recommendedTests || [],
+              status: consult.status || 'UNKNOWN',
+            };
+          });
+          setConsultations(transformedConsultations);
+          setFilteredConsultations(transformedConsultations);
+          setError(null);
+        } else {
+          throw new Error(response.message || 'Failed to fetch consultations');
+        }
+      } catch (err: any) {
+        console.error('Error fetching consultations:', err);
+        if (err.message === 'No authentication token found') {
+          navigate('/login');
+        } else {
+          setError('Failed to load consultations. Please check if the server is running or contact support.');
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConsultations();
+  }, [patientId, navigate]);
 
   useEffect(() => {
     let filtered = consultations.filter((consult) => {
@@ -173,20 +153,29 @@ const AllConsultations: React.FC = () => {
     return sortOrder === 'asc' ? '↑' : '↓';
   };
 
-  // Format date as "Month DD, YYYY"
   const formatDate = (dateStr: string) => {
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
       month: 'long',
-      day: '2-digit'
+      day: '2-digit',
     }).format(new Date(dateStr));
   };
 
   return (
-    <div className="p-4 sm:p-6min-h-screen">
+    <div className="p-4 sm:p-6 min-h-screen">
       <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-blue-600 dark:text-blue-300">
         All Consultations
       </h2>
+      {isLoading && (
+        <div className="mb-4 p-3 text-center text-blue-600 dark:text-blue-300">
+          Loading consultations...
+        </div>
+      )}
+      {error && (
+        <div className="mb-4 p-3 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200 rounded-lg">
+          {error}
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row sm:space-x-4 mb-4 sm:mb-6">
         <div className="relative w-full sm:w-1/2 mb-2 sm:mb-0">
           <input
@@ -194,21 +183,20 @@ const AllConsultations: React.FC = () => {
             placeholder="Search by diagnosis, notes, medications, tests, status, or patient ID"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-           className="w-full p-3 pl-10 border rounded-xl bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
+            className="w-full p-3 pl-10 border rounded-xl bg-white dark:bg-gray-800 dark:text-white dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900"
           />
           <svg
-          className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-600 dark:text-blue-300"
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-        >
-          <path
-            fillRule="evenodd"
-            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-            clipRule="evenodd"
-          />
-        </svg>
-
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-blue-600 dark:text-blue-300"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path
+              fillRule="evenodd"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+              clipRule="evenodd"
+            />
+          </svg>
         </div>
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
           <input
@@ -229,6 +217,11 @@ const AllConsultations: React.FC = () => {
       </div>
       {/* Card layout for all screens */}
       <div className="space-y-6">
+        {currentConsultations.length === 0 && !isLoading && !error && (
+          <div className="text-center text-gray-600 dark:text-gray-400">
+            No consultations found for this patient.
+          </div>
+        )}
         {currentConsultations.map((consult, index) => (
           <div
             key={index}
@@ -269,7 +262,9 @@ const AllConsultations: React.FC = () => {
                 </p>
                 <p className="text-sm sm:text-base text-gray-900 dark:text-gray-100">
                   <span className="font-semibold">Diagnosis:</span>{' '}
-                  {consult.diagnosis.map(d => `${d.code}${d.description ? `: ${d.description}` : ''}`).join(', ')}
+                  {consult.diagnosis.length > 0
+                    ? consult.diagnosis.map(d => `${d.code}${d.description ? `: ${d.description}` : ''}`).join(', ')
+                    : 'None'}
                 </p>
                 <p className="text-sm sm:text-base text-gray-900 dark:text-gray-100">
                   <span className="font-semibold">Subjective Notes:</span> {consult.clinicalNotes.subjective}
@@ -297,10 +292,13 @@ const AllConsultations: React.FC = () => {
                     </svg>
                     Medications:
                   </span>{' '}
-                  {consult.medications.map(m => `${m.drug} (${m.dosage}, ${m.frequency})`).join(', ')}
+                  {consult.medications.length > 0
+                    ? consult.medications.map(m => `${m.drug} (${m.dosage}, ${m.frequency})`).join(', ')
+                    : 'None'}
                 </p>
                 <p className="text-sm sm:text-base text-gray-900 dark:text-gray-100">
-                  <span className="font-semibold">Recommended Tests:</span> {consult.recommendedTests.join(', ')}
+                  <span className="font-semibold">Recommended Tests:</span>{' '}
+                  {consult.recommendedTests.length > 0 ? consult.recommendedTests.join(', ') : 'None'}
                 </p>
                 <p className="text-sm sm:text-base text-gray-900 dark:text-gray-100">
                   <span className="font-semibold">Status:</span>{' '}
@@ -308,7 +306,11 @@ const AllConsultations: React.FC = () => {
                     className={`inline-block px-2 py-1 rounded-full text-xs ${
                       consult.status === 'SCHEDULED'
                         ? 'bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-200'
-                        : 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200'
+                        : consult.status === 'COMPLETED'
+                        ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-200'
+                        : consult.status === 'IN_PROGRESS'
+                        ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-200'
+                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
                     }`}
                   >
                     {consult.status}
