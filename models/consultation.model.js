@@ -109,15 +109,8 @@ consultationSchema.index({ doctor: 1, consultationDate: -1 });
 // Pre-save validation hook
 consultationSchema.pre("save", async function (next) {
   try {
-    // Validate patient and doctor roles
-    const patient = await User.findById(this.patient);
-    if (!patient || patient.role !== "PATIENT") {
-      return next(new Error("Invalid patient ID or role"));
-    }
-    const doctor = await User.findById(this.doctor);
-    if (!doctor || doctor.role !== "DOCTOR") {
-      return next(new Error("Invalid doctor ID or role"));
-    }
+    // NOTE: Patient and doctor role validation has been removed as requested
+    // The IDs are assumed to be valid
 
     // Validate diagnoses with local dataset
     if (this.diagnosis && this.diagnosis.length > 0) {

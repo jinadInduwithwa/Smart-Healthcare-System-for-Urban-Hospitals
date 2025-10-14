@@ -1,7 +1,7 @@
 import express from "express";
 import { ConsultationController } from "../controllers/consultation.controller.js";
 import { auth, authorize } from "../middleware/auth.middleware.js";
-import { validateAddConsultation, validateSearchDiagnosis, validateUpdateConsultation } from "../validation/consultation.validation.js";
+import { validateAddConsultation, validateSearchDiagnosis, validateSearchTests, validateUpdateConsultation } from "../validation/consultation.validation.js";
 
 const router = express.Router();
 const consultationController = new ConsultationController();
@@ -37,7 +37,7 @@ router.get(
   "/search-tests",
   auth,
   authorize("DOCTOR"),
-  validateSearchDiagnosis, // Reuse same validation
+  validateSearchTests,
   consultationController.searchTestNames
 );
 

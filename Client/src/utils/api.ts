@@ -392,18 +392,26 @@ export const addConsultation = async (consultationData: ConsultationData) => {
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${BASE_URL}/consultations`, {
+    const response = await fetch(`${BASE_URL}/consult`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       body: JSON.stringify(consultationData),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to add consultation");
+      // Create a more detailed error message that includes validation errors
+      let errorMessage = errorData.message || "Failed to add consultation";
+      if (errorData.errors && Array.isArray(errorData.errors)) {
+        const validationErrors = errorData.errors.map((err: any) => 
+          `${err.param}: ${err.msg}`
+        ).join(", ");
+        errorMessage += `. Validation errors: ${validationErrors}`;
+      }
+      throw new Error(errorMessage);
     }
 
     return await response.json();
@@ -426,12 +434,12 @@ export const searchDiagnosisCodes = async ({ query, maxResults = 10 }: SearchQue
     }
 
     const response = await fetch(
-      `${BASE_URL}/consultations/search-diagnosis?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
+      `${BASE_URL}/consult/search-diagnosis?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
     );
@@ -461,7 +469,7 @@ export const searchTestNames = async ({ query, maxResults = 10 }: SearchQuery) =
     }
 
     const response = await fetch(
-      `${BASE_URL}/consultations/search-tests?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
+      `${BASE_URL}/consult/search-tests?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
       {
         method: "GET",
         headers: {
@@ -530,7 +538,15 @@ export const updateConsultation = async (id: string, consultationData: Partial<C
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.message || "Failed to update consultation");
+      // Create a more detailed error message that includes validation errors
+      let errorMessage = errorData.message || "Failed to update consultation";
+      if (errorData.errors && Array.isArray(errorData.errors)) {
+        const validationErrors = errorData.errors.map((err: any) => 
+          `${err.param}: ${err.msg}`
+        ).join(", ");
+        errorMessage += `. Validation errors: ${validationErrors}`;
+      }
+      throw new Error(errorMessage);
     }
 
     return await response.json();

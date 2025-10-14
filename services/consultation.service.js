@@ -6,6 +6,13 @@ import logger from "../utils/logger.js";
 import { AppError } from "../utils/AppError.js";
 import { validateDiagnosisCode, searchDiagnosisCodes } from "../utils/icd.helper.js";
 import { validateTestName, searchTestNames } from "../utils/test.helper.js";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class ConsultationService {
   constructor() {
@@ -16,6 +23,32 @@ export class ConsultationService {
     this.getConsultationsByPatient = this.getConsultationsByPatient.bind(this);
     this.updateConsultation = this.updateConsultation.bind(this);
     this.deleteConsultation = this.deleteConsultation.bind(this);
+    
+    // Load diagnosis codes and recommended tests data
+    this.diagnosisCodes = this.loadDiagnosisCodes();
+    this.recommendedTests = this.loadRecommendedTests();
+  }
+
+  loadDiagnosisCodes() {
+    try {
+      const dataPath = path.join(__dirname, "..", "data", "diagnosis_codes.json");
+      const rawData = fs.readFileSync(dataPath, "utf8");
+      return JSON.parse(rawData);
+    } catch (error) {
+      logger.error("Failed to load diagnosis codes", { error: error.message });
+      return [];
+    }
+  }
+
+  loadRecommendedTests() {
+    try {
+      const dataPath = path.join(__dirname, "..", "data", "recommended_tests.json");
+      const rawData = fs.readFileSync(dataPath, "utf8");
+      return JSON.parse(rawData);
+    } catch (error) {
+      logger.error("Failed to load recommended tests", { error: error.message });
+      return [];
+    }
   }
 
   async getAllPatients() {
@@ -54,7 +87,7 @@ export class ConsultationService {
     try {
       logger.info("Attempting to create consultation", {
         userId: user._id,
-        patientId: consultationData.patientId,
+        patientId: consultationData.patient,
       });
 
       // Ensure the user is a doctor
@@ -68,7 +101,7 @@ export class ConsultationService {
 
       // Validate required fields
       const {
-        patientId,
+        patient,
         consultationDate,
         diagnosis = [],
         clinicalNotes = {},
@@ -77,23 +110,19 @@ export class ConsultationService {
         status = "SCHEDULED",
       } = consultationData;
 
-      if (!patientId || !consultationDate) {
-        logger.error("Missing required fields", { patientId, consultationDate });
+      if (!patient || !consultationDate) {
+        logger.error("Missing required fields", { patientId: patient, consultationDate });
         throw new AppError("Patient ID and consultation date are required", 400);
       }
 
       // Validate ObjectId format
-      if (!mongoose.Types.ObjectId.isValid(patientId)) {
-        logger.error("Invalid patient ID format", { patientId });
+      if (!mongoose.Types.ObjectId.isValid(patient)) {
+        logger.error("Invalid patient ID format", { patientId: patient });
         throw new AppError("Invalid patient ID format", 400);
       }
 
-      // Verify patient exists and has correct role
-      const patient = await User.findById(patientId);
-      if (!patient || patient.role !== "PATIENT") {
-        logger.error("Invalid patient ID or role", { patientId });
-        throw new AppError("Invalid patient ID or role", 400);
-      }
+      // NOTE: Patient validation has been removed as requested
+      // The patient ID is assumed to be valid
 
       // Validate diagnosis codes
       const validatedDiagnoses = [];
@@ -118,7 +147,7 @@ export class ConsultationService {
 
       // Create consultation object
       const consultation = new Consultation({
-        patient: patientId,
+        patient: patient,
         doctor: user._id,
         consultationDate: new Date(consultationDate),
         diagnosis: validatedDiagnoses,
@@ -161,11 +190,28 @@ export class ConsultationService {
   async searchDiagnosisCodes(query, maxResults = 10) {
     try {
       logger.info("Searching diagnosis codes", { query, maxResults });
-      const results = await searchDiagnosisCodes(query, maxResults);
+      
+      if (!query) {
+        throw new AppError("Query parameter is required", 400);
+      }
+
+      // Filter diagnosis codes based on query
+      const filteredCodes = this.diagnosisCodes.filter(code => 
+        code.code.toLowerCase().includes(query.toLowerCase()) ||
+        code.name.toLowerCase().includes(query.toLowerCase()) ||
+        code.description.toLowerCase().includes(query.toLowerCase())
+      );
+
+      // Limit results
+      const results = filteredCodes.slice(0, maxResults);
+
       return {
         success: true,
-        data: results,
-        message: results.total > 0 ? `Found ${results.total} matching ICD-10 codes` : "No matching codes found",
+        data: {
+          results,
+          total: results.length
+        },
+        message: results.length > 0 ? `Found ${results.length} matching ICD-10 codes` : "No matching codes found",
       };
     } catch (error) {
       logger.error("Failed to search diagnosis codes", {
@@ -182,11 +228,27 @@ export class ConsultationService {
   async searchTestNames(query, maxResults = 10) {
     try {
       logger.info("Searching test names", { query, maxResults });
-      const results = await searchTestNames(query, maxResults);
+      
+      if (!query) {
+        throw new AppError("Query parameter is required", 400);
+      }
+
+      // Filter test names based on query
+      const filteredTests = this.recommendedTests.filter(test => 
+        test.name.toLowerCase().includes(query.toLowerCase()) ||
+        test.description.toLowerCase().includes(query.toLowerCase())
+      );
+
+      // Limit results
+      const results = filteredTests.slice(0, maxResults);
+
       return {
         success: true,
-        data: results,
-        message: results.total > 0 ? `Found ${results.total} matching test names` : "No matching tests found",
+        data: {
+          results,
+          total: results.length
+        },
+        message: results.length > 0 ? `Found ${results.length} matching test names` : "No matching tests found",
       };
     } catch (error) {
       logger.error("Failed to search test names", {
@@ -215,8 +277,8 @@ export class ConsultationService {
       }
 
       const consultations = await Consultation.find({ patient: patientId, deletedAt: null })
-        .populate("patient", "name email")
-        .populate("doctor", "name email")
+        .populate("patient", "name email _id")  // Include _id in the populated fields
+        .populate("doctor", "name email _id")   // Include _id in the populated fields
         .sort({ consultationDate: -1 })
         .exec();
 
