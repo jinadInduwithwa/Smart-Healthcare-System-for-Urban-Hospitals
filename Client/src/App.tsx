@@ -13,8 +13,9 @@ const DoctorRoutes = () => {
         <Route index element={<Navigate to="overview" replace />} />{" "}
         {/* Relative path */}
         <Route path="overview" element={<Overview />} />
-        <Route path="profile" element={<DoctorProfile />} />
+        <Route path="profile" element={<DoctorProfile />} />card
          <Route path="patient-records/all" element={<AllPatientRecords />} /> 
+         <Route path="patient-records/card" element={<SearchCard />} /> 
          <Route path="consultation/patient/:patientId" element={<AllConsultations />} />  
          <Route path="consultation/add/:patientId" element={<AddConsultation />} /> 
         {/* Order-related routes grouped under /orders */}
@@ -39,6 +40,7 @@ import SignUp_Doctor from "./pages/SignUp_Doctor";
 import AllPatientRecords from "./pages/doctor/AllPatientRecords";
 import AllConsultations from "./pages/doctor/AllConsultations";
 import AddConsultation from "./pages/doctor/AddConsultation";
+import SearchCard from "./pages/doctor/SearchCard";
 
 function App() {
   console.log("App component rendered");

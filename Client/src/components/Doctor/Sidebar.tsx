@@ -43,7 +43,7 @@ const menuItems: MenuItem[] = [
     icon: <FiBook />,
     subItems: [
       { path: "/doctor-dashboard/patient-records/all", title: "All Records" },
-      { path: "/doctor-dashboard/patient-records/add", title: "Add Record" },
+      { path: "/doctor-dashboard/patient-records/card", title: "Search Card" },
     ],
   },
   {
