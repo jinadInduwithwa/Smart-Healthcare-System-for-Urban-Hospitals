@@ -1,8 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-
+import { ToastProvider } from "@/context/ToastContext";
 
 //-------------- doctor --------------------------------------
 import DoctorLayout from "./pages/doctor/DoctorLayout";
@@ -47,18 +45,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-            <ToastContainer
-              position="top-right"
-              autoClose={3000}
-              hideProgressBar={false}
-              newestOnTop
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="light"
-            />
+        <ToastProvider>
             <Routes>
               <Route path="/" element={<Layout />}>
                 <Route path="/" element={<Home />} />
@@ -74,6 +61,7 @@ function App() {
               />
             </Routes>
             <MobileBottomNav />
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

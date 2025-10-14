@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { addConsultation, searchTestNames, searchDiagnosisCodes, searchDrugs } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
 
 // Define interfaces
 interface Diagnosis {
@@ -48,6 +49,7 @@ const AddConsultation: React.FC = () => {
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
   const { user, isAuthenticated, loading: authLoading } = useAuth();
+  const { addToast } = useToast();
   const [formData, setFormData] = useState<ConsultationForm>({
     patient: patientId || '',
     doctor: user?.id || '',
@@ -60,7 +62,6 @@ const AddConsultation: React.FC = () => {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   const [diagnosisSuggestions, setDiagnosisSuggestions] = useState<{ [index: number]: SearchResult[] }>({});
   const [testSuggestions, setTestSuggestions] = useState<{ [index: number]: SearchResult[] }>({});
   const [drugSuggestions, setDrugSuggestions] = useState<{ [index: number]: Drug[] }>({});
@@ -178,7 +179,16 @@ const AddConsultation: React.FC = () => {
     }
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    
+    // Show toast notifications for validation errors
+    if (Object.keys(newErrors).length > 0) {
+      Object.values(newErrors).forEach(error => {
+        addToast(error, 'error');
+      });
+      return false;
+    }
+    
+    return true;
   };
 
   // Handle diagnosis input with autocomplete
@@ -197,10 +207,12 @@ const AddConsultation: React.FC = () => {
           setDiagnosisSuggestions(prev => ({ ...prev, [index]: response.data.results }));
         } else {
           setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
+          addToast('Failed to search diagnosis codes', 'error');
         }
       } catch (err) {
         console.error('Error fetching diagnosis suggestions:', err);
         setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
+        addToast('Error fetching diagnosis suggestions', 'error');
       } finally {
         setIsSearchingDiagnosis(prev => ({ ...prev, [index]: false }));
       }
@@ -259,10 +271,12 @@ const AddConsultation: React.FC = () => {
         setDrugSuggestions(prev => ({ ...prev, [index]: response.data.results }));
       } else {
         setDrugSuggestions(prev => ({ ...prev, [index]: [] }));
+        addToast('Failed to search drugs', 'error');
       }
     } catch (err) {
       console.error('Error fetching drug suggestions:', err);
       setDrugSuggestions(prev => ({ ...prev, [index]: [] }));
+      addToast('Error fetching drug suggestions', 'error');
     } finally {
       setIsSearchingDrugs(prev => ({ ...prev, [index]: false }));
     }
@@ -319,10 +333,12 @@ const AddConsultation: React.FC = () => {
           setTestSuggestions(prev => ({ ...prev, [index]: response.data.results }));
         } else {
           setTestSuggestions(prev => ({ ...prev, [index]: [] }));
+          addToast('Failed to search test names', 'error');
         }
       } catch (err) {
         console.error('Error fetching test suggestions:', err);
         setTestSuggestions(prev => ({ ...prev, [index]: [] }));
+        addToast('Error fetching test suggestions', 'error');
       } finally {
         setIsSearchingTests(prev => ({ ...prev, [index]: false }));
       }
@@ -443,7 +459,6 @@ const AddConsultation: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setSuccessMessage('');
     setErrors(prev => ({ ...prev, general: '' }));
     try {
       const isValid = validateForm();
@@ -462,7 +477,7 @@ const AddConsultation: React.FC = () => {
       const response = await addConsultation(submissionData);
       console.log('addConsultation response:', response);
       if (response.success) {
-        setSuccessMessage('Consultation added successfully!');
+        addToast('Consultation added successfully!', 'success');
         setTimeout(() => {
           navigate(`/doctor-dashboard/consultation/patient/${formData.patient}`);
         }, 2000);
@@ -473,12 +488,7 @@ const AddConsultation: React.FC = () => {
       console.error('Submission error:', err);
       // Extract validation errors from the error message if they exist
       const errorMessage = err.message || 'Failed to add consultation';
-      if (errorMessage.includes('Validation errors:')) {
-        // Display detailed validation errors
-        setErrors(prev => ({ ...prev, general: errorMessage }));
-      } else {
-        setErrors(prev => ({ ...prev, general: errorMessage }));
-      }
+      addToast(errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -502,9 +512,9 @@ const AddConsultation: React.FC = () => {
   }
 
   return (
-    <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="p-6 min-h-screen ">
       <h2 className="text-3xl font-bold mb-6 text-blue-600 dark:text-blue-300">
-        Add New Consultation
+        New Consultation
       </h2>
       {isLoading && (
         <div className="mb-6 p-4 text-center bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-lg flex items-center justify-center">
@@ -515,30 +525,9 @@ const AddConsultation: React.FC = () => {
           Saving consultation...
         </div>
       )}
-      {successMessage && (
-        <div className="mb-6 p-4 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-200 rounded-lg">
-          {successMessage}
-        </div>
-      )}
-      {errors.general && (
-        <div className="mb-6 p-4 bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200 rounded-lg">
-          {errors.general}
-        </div>
-      )}
-      {/* Display detailed validation errors if they exist */}
-      {errors.general && errors.general.includes('Validation errors:') && (
-        <div className="mb-6 p-4 bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-200 rounded-lg">
-          <h3 className="font-bold mb-2">Validation Details:</h3>
-          <ul className="list-disc pl-5">
-            {errors.general.split('Validation errors: ')[1].split(', ').map((error, index) => (
-              <li key={index}>{error}</li>
-            ))}
-          </ul>
-        </div>
-      )}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Tab Navigation */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6 rounded-full bg-gray-100 dark:bg-gray-800 p-1">
+        <div className="flex  border-gray-200 dark:border-gray-700 mb-6 rounded-full bg-gray-100 dark:bg-gray-800 p-1">
           <button
             type="button"
             className={`py-3 px-6 font-medium text-sm rounded-full transition-all duration-200 ${
@@ -587,7 +576,7 @@ const AddConsultation: React.FC = () => {
 
         {/* Patient and Doctor Section */}
         {activeTab === 'basic' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+          <div className="pb-10">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300">
                 Patient and Doctor Information
@@ -804,7 +793,7 @@ const AddConsultation: React.FC = () => {
 
         {/* Clinical Notes Section */}
         {activeTab === 'clinical' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+          <div className="overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300">
                 Clinical Notes
@@ -853,7 +842,7 @@ const AddConsultation: React.FC = () => {
 
         {/* Medications Section */}
         {activeTab === 'meds' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+          <div className="">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300">
                 Medications
@@ -1028,7 +1017,7 @@ const AddConsultation: React.FC = () => {
 
         {/* Recommended Tests Section */}
         {activeTab === 'tests' && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden">
+          <div className="">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
               <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300">
                 Recommended Tests
