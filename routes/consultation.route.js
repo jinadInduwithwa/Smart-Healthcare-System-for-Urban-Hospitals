@@ -41,6 +41,14 @@ router.get(
   consultationController.searchTestNames
 );
 
+// Protected route for searching drugs (only doctors)
+router.get(
+  "/search-drugs",
+  auth,
+  authorize("DOCTOR"),
+  consultationController.searchDrugs
+);
+
 // Protected route for viewing consultations by patient (doctors or patients can view their own)
 router.get(
   "/patient/:patientId",

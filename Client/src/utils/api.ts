@@ -351,6 +351,13 @@ interface TestName {
   name: string;
 }
 
+interface Drug {
+  id: string;
+  name: string;
+  dosageForms: string[];
+  frequencyOptions: string[];
+}
+
 interface SearchQuery {
   query: string;
   maxResults?: number;
@@ -487,6 +494,41 @@ export const searchTestNames = async ({ query, maxResults = 10 }: SearchQuery) =
     return await response.json();
   } catch (error) {
     console.error("Search test names error:", error);
+    throw error;
+  }
+};
+
+// Search drugs
+export const searchDrugs = async ({ query, maxResults = 10 }: SearchQuery) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    if (!query) {
+      throw new Error("Query parameter is required");
+    }
+
+    const response = await fetch(
+      `${BASE_URL}/consult/search-drugs?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to search drugs");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Search drugs error:", error);
     throw error;
   }
 };
