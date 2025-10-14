@@ -121,4 +121,5 @@ export class DoctorMgrController {
   }
 }
 
+
 export default new DoctorMgrController();

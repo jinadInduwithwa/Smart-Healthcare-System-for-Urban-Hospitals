@@ -223,6 +223,7 @@ function App() {
             <Route path="reports/patient" element={<PatientReport />} />
             <Route path="reports/doctor" element={<DoctorReport />} />
             <Route path="reports/financial" element={<FinancialReport />} />
+            
           </Route>
         </Routes>
         <MobileBottomNav />

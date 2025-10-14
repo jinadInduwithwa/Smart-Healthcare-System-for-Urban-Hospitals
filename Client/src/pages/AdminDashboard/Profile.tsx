@@ -181,7 +181,7 @@ function Profile() {
             </div>
           ) : (
             <p className="text-gray-600 dark:text-gray-400 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-              No doctors registered yet. Add one from{" "}
+               Add one from{" "}
               <a href="/admin-dashboard/users/doctors" className="text-blue-600 hover:underline">
                 Doctor Management
               </a>.
@@ -194,7 +194,7 @@ function Profile() {
           <h2 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">Registered Patients</h2>
           {(!patients || patients.length === 0) ? (
             <p className="text-gray-600 dark:text-gray-400 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-              No patients registered yet. Add one from{" "}
+               Add one from{" "}
               <a href="/admin-dashboard/users/patients" className="text-blue-600 hover:underline">
                 Patient Management
               </a>.

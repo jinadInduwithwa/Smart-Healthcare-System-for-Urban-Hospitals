@@ -318,7 +318,7 @@
 //   }
 // };
 
-const BASE_URL = "http://localhost:3002/api";
+export const BASE_URL = "http://localhost:3002/api";
 
 //------------------------ Auth APIs ----------------------
 
@@ -745,6 +745,146 @@ export const getDoctors = async (token: string): Promise<any> => {
     return await response.json();
   } catch (error) {
     console.error("Get doctors error:", error);
+    throw error;
+  }
+};
+
+
+
+//------------------------ Patient APIs ----------------------
+
+interface Patient {
+  _id?: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  phone: string;
+  isVerified: boolean;
+  healthCardId: string;
+  dateOfBirth: string;
+  gender: string;
+}
+
+export const addPatient = async (patientData: Patient, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/patients`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(patientData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to add patient");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Add patient error:", error);
+    throw error;
+  }
+};
+
+export const updatePatient = async (id: string, patientData: Partial<Patient>, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/patients/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(patientData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update patient");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Update patient error:", error);
+    throw error;
+  }
+};
+
+export const deletePatient = async (id: string, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/patients/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete patient");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Delete patient error:", error);
+    throw error;
+  }
+};
+
+export const getPatients = async (token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/patients`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text(); // Use text() for potential non-JSON errors
+      throw new Error(errorData || "Failed to fetch patients");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Get patients error:", error);
+    throw error;
+  }
+};
+
+export const getPatientCheckInReport = async (startDate: string, endDate: string, token: string): Promise<any> => {
+  try {
+    const response = await fetch(
+      `${BASE_URL}/reports/patient-check-ins?startDate=${startDate}&endDate=${endDate}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      throw new Error(errorData || "Failed to fetch patient check-in report");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Get patient check-in report error:", error);
     throw error;
   }
 };

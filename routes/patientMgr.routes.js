@@ -12,4 +12,5 @@ router.patch("/patients/:id", auth, authorize("ADMIN"), controller.updatePatient
 router.delete("/patients/:id", auth, authorize("ADMIN"), controller.deletePatient.bind(controller));
 router.get("/patients", auth, authorize("ADMIN"), controller.getPatients.bind(controller));
 
+
 export default router;
