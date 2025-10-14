@@ -186,7 +186,7 @@ function Overview() {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("No authentication token found");
       const startDate = new Date("2025-01-01").toISOString();
-      const endDate = new Date("2025-09-30").toISOString();
+      const endDate = new Date("2025-10-30").toISOString();
       const response = await fetch(
         `/api/reports/overview?startDate=${startDate}&endDate=${endDate}`,
         {

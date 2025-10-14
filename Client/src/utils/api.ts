@@ -866,20 +866,48 @@ export const getPatients = async (token: string): Promise<any> => {
 
 export const getPatientCheckInReport = async (startDate: string, endDate: string, token: string): Promise<any> => {
   try {
-    const response = await fetch(
-      `${BASE_URL}/reports/patient-check-ins?startDate=${startDate}&endDate=${endDate}`,
-      {
+    const url = `${BASE_URL}/reports/patient-check-ins?startDate=${startDate}&endDate=${endDate}`;
+    console.log("Fetching patient check-in report from:", url);
+    
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      },
+    });
+
+    console.log("Response status:", response.status);
+    console.log("Response headers:", response.headers);
+
+    // Handle 304 Not Modified - fetch again without cache
+    if (response.status === 304) {
+      console.warn("Received 304 Not Modified, retrying without cache...");
+      const retryResponse = await fetch(url + `&_t=${Date.now()}`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
         },
-      }
-    );
+      });
+      return await retryResponse.json();
+    }
+
+    // Check if response is JSON
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const textResponse = await response.text();
+      console.error("Non-JSON response received:", textResponse.substring(0, 200));
+      throw new Error(`Server returned ${contentType || 'unknown content type'}. Expected JSON. Make sure backend server is running on port 3002.`);
+    }
 
     if (!response.ok) {
-      const errorData = await response.text();
-      throw new Error(errorData || "Failed to fetch patient check-in report");
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to fetch patient check-in report (${response.status})`);
     }
 
     return await response.json();
