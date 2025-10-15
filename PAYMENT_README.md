@@ -24,7 +24,7 @@ This payment system provides a complete solution for managing medical appointmen
 The following Stripe configuration has been added to your `.env` file:
 
 ```env
-STRIPE_SECRET_KEY=sk_test_51Q8PTGRqiGNBsAtSg2QF6Lxq9gcgrNnDq9d8P5qanC5tSr74R9iFpuPN770VlpKcuePUoGCnEjocJBecq5B2Cpp300WGdUGSlY
+STRIPE_SECRET_KEY=
 STRIPE_WEBHOOK_SECRET=
 STRIPE_CURRENCY=lkr
 ```
