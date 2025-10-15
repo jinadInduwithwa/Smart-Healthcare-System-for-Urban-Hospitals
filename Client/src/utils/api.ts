@@ -1,10 +1,8 @@
-
 const BASE_URL = "http://localhost:3002/api";
-
 
 //------------------------ Auth APIs ----------------------
 
-interface FormData {
+export interface FormData {
   email: string;
   password: string;
   firstName: string;
@@ -71,7 +69,6 @@ export const register = async (userData: FormData) => {
   }
 };
 
-
 export const verifyEmail = async (pin: string) => {
   try {
     const response = await fetch(`${BASE_URL}/auth/verify-email`, {
@@ -90,17 +87,20 @@ export const verifyEmail = async (pin: string) => {
     console.log("Verify Email Response Text:", responseText);
 
     if (!response.ok) {
-      throw new Error(`Verification failed with status ${response.status}: ${responseText}`);
+      throw new Error(
+        `Verification failed with status ${response.status}: ${responseText}`
+      );
     }
 
     const data = await response.json(); // Read JSON
     return data; // Returns { status: 'success', message: 'Email verified successfully' }
   } catch (error) {
     console.error("Verification error:", error);
-    throw error instanceof Error ? error : new Error("Email verification failed");
+    throw error instanceof Error
+      ? error
+      : new Error("Email verification failed");
   }
 };
-
 
 // get profile
 export const getProfile = async () => {
@@ -264,7 +264,10 @@ export const deleteUser = async (userId: string) => {
 };
 
 // get update user status (for admin)
-export const updateUserStatus = async (userId: string, statusData: UserStatusData) => {
+export const updateUserStatus = async (
+  userId: string,
+  statusData: UserStatusData
+) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -293,7 +296,10 @@ export const updateUserStatus = async (userId: string, statusData: UserStatusDat
 };
 
 // update user role (for admin)
-export const updateUserRole = async (userId: string, roleData: UserRoleData) => {
+export const updateUserRole = async (
+  userId: string,
+  roleData: UserRoleData
+) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -377,7 +383,7 @@ export const getAllPatients = async () => {
     const response = await fetch(`${BASE_URL}/consult/patients`, {
       method: "GET",
       headers: {
-         "Content-Type": "application/json",
+        "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
@@ -416,9 +422,9 @@ export const addConsultation = async (consultationData: ConsultationData) => {
       // Create a more detailed error message that includes validation errors
       let errorMessage = errorData.message || "Failed to add consultation";
       if (errorData.errors && Array.isArray(errorData.errors)) {
-        const validationErrors = errorData.errors.map((err: any) => 
-          `${err.param}: ${err.msg}`
-        ).join(", ");
+        const validationErrors = errorData.errors
+          .map((err: any) => `${err.param}: ${err.msg}`)
+          .join(", ");
         errorMessage += `. Validation errors: ${validationErrors}`;
       }
       throw new Error(errorMessage);
@@ -432,7 +438,10 @@ export const addConsultation = async (consultationData: ConsultationData) => {
 };
 
 // Search diagnosis codes
-export const searchDiagnosisCodes = async ({ query, maxResults = 10 }: SearchQuery) => {
+export const searchDiagnosisCodes = async ({
+  query,
+  maxResults = 10,
+}: SearchQuery) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -444,7 +453,9 @@ export const searchDiagnosisCodes = async ({ query, maxResults = 10 }: SearchQue
     }
 
     const response = await fetch(
-      `${BASE_URL}/consult/search-diagnosis?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
+      `${BASE_URL}/consult/search-diagnosis?query=${encodeURIComponent(
+        query
+      )}&maxResults=${maxResults}`,
       {
         method: "GET",
         headers: {
@@ -467,7 +478,10 @@ export const searchDiagnosisCodes = async ({ query, maxResults = 10 }: SearchQue
 };
 
 // Search test names
-export const searchTestNames = async ({ query, maxResults = 10 }: SearchQuery) => {
+export const searchTestNames = async ({
+  query,
+  maxResults = 10,
+}: SearchQuery) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -479,7 +493,9 @@ export const searchTestNames = async ({ query, maxResults = 10 }: SearchQuery) =
     }
 
     const response = await fetch(
-      `${BASE_URL}/consult/search-tests?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
+      `${BASE_URL}/consult/search-tests?query=${encodeURIComponent(
+        query
+      )}&maxResults=${maxResults}`,
       {
         method: "GET",
         headers: {
@@ -514,7 +530,9 @@ export const searchDrugs = async ({ query, maxResults = 10 }: SearchQuery) => {
     }
 
     const response = await fetch(
-      `${BASE_URL}/consult/search-drugs?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
+      `${BASE_URL}/consult/search-drugs?query=${encodeURIComponent(
+        query
+      )}&maxResults=${maxResults}`,
       {
         method: "GET",
         headers: {
@@ -565,7 +583,10 @@ export const getConsultationsByPatient = async (patientId: string) => {
 };
 
 // Update a consultation
-export const updateConsultation = async (id: string, consultationData: Partial<ConsultationData>) => {
+export const updateConsultation = async (
+  id: string,
+  consultationData: Partial<ConsultationData>
+) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -586,9 +607,9 @@ export const updateConsultation = async (id: string, consultationData: Partial<C
       // Create a more detailed error message that includes validation errors
       let errorMessage = errorData.message || "Failed to update consultation";
       if (errorData.errors && Array.isArray(errorData.errors)) {
-        const validationErrors = errorData.errors.map((err: any) => 
-          `${err.param}: ${err.msg}`
-        ).join(", ");
+        const validationErrors = errorData.errors
+          .map((err: any) => `${err.param}: ${err.msg}`)
+          .join(", ");
         errorMessage += `. Validation errors: ${validationErrors}`;
       }
       throw new Error(errorMessage);
@@ -630,11 +651,6 @@ export const deleteConsultation = async (id: string) => {
 };
 
 // helper to build Authorization headers from the stored token
-function authHeaders(): Record<string, string> {
-  const token = localStorage.getItem("token");
-  if (!token) return {};
-  return { Authorization: `Bearer ${token}` };
-}
 
 // ---------------- Appointment APIs ----------------
 
@@ -645,23 +661,33 @@ export async function getSpecialties() {
 }
 
 export async function getDoctorsBySpecialty(s: string) {
-  const r = await fetch(`${BASE_URL}/appointments/doctors?specialty=${encodeURIComponent(s)}`);
+  const r = await fetch(
+    `${BASE_URL}/appointments/doctors?specialty=${encodeURIComponent(s)}`
+  );
   if (!r.ok) throw new Error("Failed to load doctors");
   return r.json();
 }
 
 export async function getSlots(doctorId: string, dateISO?: string) {
   const r = await fetch(
-    `${BASE_URL}/appointments/slots?doctorId=${doctorId}${dateISO ? `&date=${dateISO}` : ""}`
+    `${BASE_URL}/appointments/slots?doctorId=${doctorId}${
+      dateISO ? `&date=${dateISO}` : ""
+    }`
   );
   if (!r.ok) throw new Error("Failed to load slots");
   return r.json();
 }
 
 export async function createAppointment(doctorId: string, slotId: string) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
+
   const r = await fetch(`${BASE_URL}/appointments`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({ doctorId, slotId }),
   });
   if (!r.ok) {
@@ -672,9 +698,15 @@ export async function createAppointment(doctorId: string, slotId: string) {
 }
 
 export async function payAppointment(appointmentId: string) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
+
   const r = await fetch(`${BASE_URL}/appointments/pay`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({ appointmentId }),
   });
   if (!r.ok) {
@@ -686,33 +718,49 @@ export async function payAppointment(appointmentId: string) {
 
 // Patient's appointments (requires Authorization)
 export async function getMyAppointments() {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
+
   const r = await fetch(`${BASE_URL}/appointments/mine`, {
-    headers: { ...authHeaders() } as HeadersInit,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
-    throw new Error(err?.message || (r.status === 401 ? "Unauthorized" : "Failed to load appointments"));
+    throw new Error(
+      err?.message ||
+        (r.status === 401 ? "Unauthorized" : "Failed to load appointments")
+    );
   }
   return r.json(); // { data: [...] }
 }
 
-// Optional helpers hitting /users/me if your backend supports them
+// Profile management APIs
 export async function getMe() {
-  console.log("Calling getMe API"); // Debug log
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
+
   const r = await fetch(`${BASE_URL}/auth/profile`, {
-    headers: { ...authHeaders() } as HeadersInit,
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
   });
-  console.log("API Response status:", r.status); // Debug log
   if (!r.ok) throw new Error("Failed to load user");
   const j = await r.json();
-  console.log("API Response JSON:", j); // Debug log
   return j.data ?? j;
 }
 
 export async function updateMe(payload: any) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
+
   const r = await fetch(`${BASE_URL}/auth/profile`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(payload),
   });
   if (!r.ok) throw new Error("Failed to update user");
@@ -721,11 +769,16 @@ export async function updateMe(payload: any) {
 }
 
 export async function uploadAvatar(file: File) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
+
   const fd = new FormData();
   fd.append("avatar", file);
   const r = await fetch(`${BASE_URL}/users/me/avatar`, {
     method: "PUT",
-    headers: { ...authHeaders() } as HeadersInit, // don't set Content-Type for FormData
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
     body: fd,
   });
   if (!r.ok) throw new Error("Failed to upload avatar");
@@ -733,12 +786,29 @@ export async function uploadAvatar(file: File) {
   return j.data ?? j; // { avatarUrl }
 }
 
-export async function changePassword(payload: { oldPassword: string; newPassword: string }) {
+export async function changePassword(payload: {
+  oldPassword: string;
+  newPassword: string;
+}) {
+  const token = localStorage.getItem("token");
+  if (!token) throw new Error("No authentication token found");
+
   const r = await fetch(`${BASE_URL}/auth/change-password`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify(payload),
   });
   if (!r.ok) throw new Error("Password change failed");
   return r.json();
+}
+
+// Logout helper
+export async function logout() {
+  // Clear token
+  localStorage.removeItem("token");
+  // Clear profile data
+  localStorage.removeItem("user");
 }

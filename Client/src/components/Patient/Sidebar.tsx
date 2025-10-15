@@ -1,5 +1,7 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { logout } from "@/utils/api";
+import { FiLogOut } from "react-icons/fi";
 
 type AppUser = {
   _id?: string;
@@ -18,7 +20,9 @@ const NavItem = ({ to, label }: { to: string; label: string }) => {
     <Link
       to={to}
       className={`block px-4 py-2 rounded-md text-sm font-medium ${
-        active ? "bg-white text-blue-900 shadow-sm" : "text-white/90 hover:bg-white/10"
+        active
+          ? "bg-white text-blue-900 shadow-sm"
+          : "text-white/90 hover:bg-white/10"
       }`}
     >
       {label}
@@ -57,7 +61,7 @@ function Avatar({ user }: { user?: AppUser }) {
 }
 
 export default function Sidebar() {
-  // Pull user from AuthContext; if not present, try localStorage "user"
+  const navigate = useNavigate();
   const auth = (typeof useAuth === "function" ? useAuth() : null) as any;
   let user: AppUser | undefined = auth?.user;
   if (!user) {
@@ -105,6 +109,24 @@ export default function Sidebar() {
         <NavItem to="/patient/my-appointments" label="My Appointments" />
         <NavItem to="/patient/past-records" label="Past Records" />
       </nav>
+
+      {/* Logout Button */}
+      <button
+        onClick={async () => {
+          try {
+            await logout();
+            auth?.setUser?.(null); // Clear auth context
+            auth?.updateUser?.(null); // Clear auth context
+            navigate("/signin"); // Navigate to sign in page instead of home
+          } catch (error) {
+            console.error("Logout failed:", error);
+          }
+        }}
+        className="flex items-center gap-2 mx-3 mb-6 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10 rounded-md"
+      >
+        <FiLogOut />
+        <span>Logout</span>
+      </button>
     </aside>
   );
 }
