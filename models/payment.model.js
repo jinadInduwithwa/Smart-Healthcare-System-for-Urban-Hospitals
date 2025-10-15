@@ -1,0 +1,273 @@
+import mongoose from "mongoose";
+
+const paymentSchema = new mongoose.Schema(
+  {
+    // Payment Reference
+    invoiceNumber: {
+      type: String,
+      required: true,
+      unique: true,
+      index: true,
+    },
+
+    // Related References
+    appointment: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Appointment",
+      required: true,
+      index: true,
+    },
+    patient: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Patient",
+      required: true,
+      index: true,
+    },
+    doctor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Doctor",
+      required: true,
+    },
+
+    // Payment Amount Details
+    amount: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    currency: {
+      type: String,
+      default: "lkr",
+      uppercase: true,
+    },
+
+    // Payment Status
+    status: {
+      type: String,
+      enum: [
+        "PENDING",
+        "PROCESSING",
+        "PAID",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "REFUNDED",
+        "OVERDUE",
+      ],
+      default: "PENDING",
+      index: true,
+    },
+
+    // Payment Method
+    paymentMethod: {
+      type: String,
+      enum: ["CARD", "INSURANCE", "HOSPITAL", "ONLINE"],
+      default: "CARD",
+    },
+
+    // Stripe Integration
+    stripeSessionId: {
+      type: String,
+      sparse: true,
+      index: true,
+    },
+    stripePaymentIntentId: {
+      type: String,
+      sparse: true,
+    },
+    stripeCustomerId: {
+      type: String,
+      sparse: true,
+    },
+
+    // Transaction Details
+    transactionId: {
+      type: String,
+      sparse: true,
+      index: true,
+    },
+
+    // Dates
+    dueDate: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    paidAt: {
+      type: Date,
+      index: true,
+    },
+
+    // Refund Details
+    refundId: {
+      type: String,
+      sparse: true,
+    },
+    refundAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    refundedAt: {
+      type: Date,
+    },
+    refundReason: {
+      type: String,
+    },
+
+    // Additional Information
+    description: {
+      type: String,
+    },
+    metadata: {
+      type: Map,
+      of: String,
+    },
+
+    // Payment Receipt
+    receiptUrl: {
+      type: String,
+    },
+
+    // Error tracking
+    errorMessage: {
+      type: String,
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
+);
+
+// Indexes for performance
+paymentSchema.index({ patient: 1, status: 1 });
+paymentSchema.index({ appointment: 1 });
+paymentSchema.index({ createdAt: -1 });
+paymentSchema.index({ paidAt: -1 });
+
+// Generate invoice number before save
+paymentSchema.pre("save", async function (next) {
+  if (!this.invoiceNumber) {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+
+    // Count payments this month
+    const count = await this.constructor.countDocuments({
+      createdAt: {
+        $gte: new Date(year, date.getMonth(), 1),
+        $lt: new Date(year, date.getMonth() + 1, 1),
+      },
+    });
+
+    this.invoiceNumber = `INV-${year}${month}-${String(count + 1).padStart(
+      5,
+      "0"
+    )}`;
+  }
+
+  // Update status based on due date
+  if (this.status === "PENDING" && this.dueDate < new Date()) {
+    this.status = "OVERDUE";
+  }
+
+  next();
+});
+
+// Virtual for checking if payment is overdue
+paymentSchema.virtual("isOverdue").get(function () {
+  return this.status === "PENDING" && this.dueDate < new Date();
+});
+
+// Virtual for days until due
+paymentSchema.virtual("daysUntilDue").get(function () {
+  if (this.status !== "PENDING" && this.status !== "OVERDUE") return null;
+  const today = new Date();
+  const due = new Date(this.dueDate);
+  const diffTime = due - today;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+});
+
+// Method to mark as paid
+paymentSchema.methods.markAsPaid = function (transactionId, paymentIntentId) {
+  this.status = "PAID";
+  this.paidAt = new Date();
+  this.transactionId = transactionId;
+  if (paymentIntentId) {
+    this.stripePaymentIntentId = paymentIntentId;
+  }
+  return this.save();
+};
+
+// Method to mark as failed
+paymentSchema.methods.markAsFailed = function (errorMessage) {
+  this.status = "FAILED";
+  this.errorMessage = errorMessage;
+  return this.save();
+};
+
+// Method to process refund
+paymentSchema.methods.processRefund = function (refundId, amount, reason) {
+  this.status = "REFUNDED";
+  this.refundId = refundId;
+  this.refundAmount = amount || this.amount;
+  this.refundedAt = new Date();
+  this.refundReason = reason;
+  return this.save();
+};
+
+// Static method to get outstanding balance for a patient
+paymentSchema.statics.getOutstandingBalance = async function (patientId) {
+  const result = await this.aggregate([
+    {
+      $match: {
+        patient: mongoose.Types.ObjectId(patientId),
+        status: { $in: ["PENDING", "OVERDUE"] },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: "$amount" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  return result.length > 0 ? result[0] : { total: 0, count: 0 };
+};
+
+// Static method to get payment summary for a patient
+paymentSchema.statics.getPaymentSummary = async function (patientId) {
+  const outstanding = await this.getOutstandingBalance(patientId);
+
+  const completed = await this.aggregate([
+    {
+      $match: {
+        patient: mongoose.Types.ObjectId(patientId),
+        status: { $in: ["PAID", "COMPLETED"] },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: "$amount" },
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  return {
+    outstandingBalance: outstanding.total,
+    pendingAppointments: outstanding.count,
+    totalPaid: completed.length > 0 ? completed[0].total : 0,
+    completedPayments: completed.length > 0 ? completed[0].count : 0,
+  };
+};
+
+const Payment = mongoose.model("Payment", paymentSchema);
+
+export default Payment;
