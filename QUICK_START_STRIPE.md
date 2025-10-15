@@ -135,7 +135,6 @@ pnpm run dev
 # In your .env file:
 PORT=3002
 MONGODB_URI=mongodb+srv://...
-STRIPE_SECRET_KEY=sk_test_51Q8PTGRqiGNBsAtSg2QF6Lxq9gcgrNnDq9d8P5qanC5tSr74R9iFpuPN770VlpKcuePUoGCnEjocJBecq5B2Cpp300WGdUGSlY
 STRIPE_WEBHOOK_SECRET=whsec_xxxxxxxxxx  # <- Add this after running stripe listen
 STRIPE_CURRENCY=lkr
 ```
