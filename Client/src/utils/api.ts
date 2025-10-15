@@ -250,16 +250,19 @@ export async function getMyAppointments() {
 
 // Optional helpers hitting /users/me if your backend supports them
 export async function getMe() {
-  const r = await fetch(`${BASE_URL}/users/me`, {
+  console.log("Calling getMe API"); // Debug log
+  const r = await fetch(`${BASE_URL}/auth/profile`, {
     headers: { ...authHeaders() } as HeadersInit,
   });
+  console.log("API Response status:", r.status); // Debug log
   if (!r.ok) throw new Error("Failed to load user");
   const j = await r.json();
+  console.log("API Response JSON:", j); // Debug log
   return j.data ?? j;
 }
 
 export async function updateMe(payload: any) {
-  const r = await fetch(`${BASE_URL}/users/me`, {
+  const r = await fetch(`${BASE_URL}/auth/profile`, {
     method: "PUT",
     headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
     body: JSON.stringify(payload),

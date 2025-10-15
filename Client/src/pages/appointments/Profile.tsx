@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
 import { getMe, updateMe, uploadAvatar, changePassword } from "@/utils/api";
+import { QRCodeSVG } from "qrcode.react";
 
 type UserMe = {
-  _id: string;
+  _id?: string;
+  id?: string;
   firstName?: string;
   lastName?: string;
   email: string;
@@ -51,6 +53,10 @@ export default function Profile() {
   const [newPwd, setNewPwd] = useState("");
   const [newPwd2, setNewPwd2] = useState("");
   const [pwdSaving, setPwdSaving] = useState(false);
+
+  // QR code state
+  const [showQR, setShowQR] = useState(false);
+  const qrRef = useRef<HTMLDivElement>(null);
 
   // fetch authoritative profile from API
   useEffect(() => {
@@ -141,6 +147,33 @@ export default function Profile() {
     }
   }
 
+  // Function to download QR code
+  const downloadQRCode = () => {
+    if (!qrRef.current) return;
+    
+    const svg = qrRef.current.querySelector("svg");
+    if (!svg) return;
+    
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    const img = new Image();
+    
+    img.onload = () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      ctx?.drawImage(img, 0, 0);
+      
+      const pngFile = canvas.toDataURL("image/png");
+      const downloadLink = document.createElement("a");
+      downloadLink.download = `patient-${me?._id}-qrcode.png`;
+      downloadLink.href = pngFile;
+      downloadLink.click();
+    };
+    
+    img.src = "data:image/svg+xml;base64," + btoa(svgData);
+  };
+
   if (!me) {
     return (
       <div className="px-6 md:px-8 py-6">
@@ -164,8 +197,50 @@ export default function Profile() {
               Patient ID: <span className="font-medium">#{String(me.patientId)}</span>
             </div>
           )}
+          {/* QR Code Button */}
+          {(me._id || me.id) && (
+            <button
+              onClick={() => setShowQR(!showQR)}
+              className="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-md text-xs hover:bg-blue-200 transition"
+            >
+              {showQR ? "Hide QR Code" : "Show QR Code"}
+            </button>
+          )}
         </div>
       </div>
+
+      {/* QR Code Display */}
+      {showQR && (me?._id || me?.id) && (
+        <div className="bg-white border rounded-xl p-5 mb-6">
+          <div className="flex flex-col items-center">
+            <h3 className="text-lg font-semibold text-slate-800 mb-4">Your Patient QR Code</h3>
+            <p className="text-sm text-slate-600 mb-4 text-center">
+              Scan this QR code to access your patient records
+            </p>
+            
+            {/* QR Code */}
+            <div ref={qrRef} className="p-4 bg-white rounded-lg border">
+              <QRCodeSVG
+                value={JSON.stringify({ userId: me._id || me.id })}
+                size={200}
+                level={"H"}
+                includeMargin={true}
+              />
+            </div>
+            
+            <p className="text-xs text-slate-500 mt-2">
+                User ID: {me._id || me.id}
+              </p>
+              
+            <button
+              onClick={downloadQRCode}
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+            >
+              Download QR Code
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Details form */}
       <form onSubmit={onSave} className="space-y-6">
