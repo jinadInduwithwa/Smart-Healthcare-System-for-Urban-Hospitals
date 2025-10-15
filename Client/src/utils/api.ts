@@ -749,6 +749,46 @@ export const getDoctors = async (token: string): Promise<any> => {
   }
 };
 
+// Add this function to your api.ts file in the reports section
+
+export const getDoctorAvailabilityReport = async (token: string): Promise<any> => {
+  try {
+    const url = `${BASE_URL}/reports/doctor-availability`;
+    console.log("Fetching doctor availability report from:", url);
+    
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      },
+    });
+
+    console.log("Response status:", response.status);
+
+    // Check if response is JSON
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const textResponse = await response.text();
+      console.error("Non-JSON response received:", textResponse.substring(0, 200));
+      throw new Error(`Server returned ${contentType || 'unknown content type'}. Expected JSON.`);
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to fetch doctor availability report (${response.status})`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Get doctor availability report error:", error);
+    throw error;
+  }
+};
+
 
 
 //------------------------ Patient APIs ----------------------
