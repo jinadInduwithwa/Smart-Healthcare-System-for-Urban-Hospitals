@@ -1,9 +1,8 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { ToastProvider } from "@/context/ToastContext";
 
-// -------------- doctor --------------------------------------
+//-------------- doctor --------------------------------------
 import DoctorLayout from "./pages/doctor/DoctorLayout";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
 import Overview from "./pages/doctor/Overview";
@@ -30,61 +29,64 @@ const DoctorRoutes = () => {
       <Route path="/" element={<DoctorLayout />}>
         <Route index element={<Navigate to="overview" replace />} />
         <Route path="overview" element={<Overview />} />
-        <Route path="profile" element={<DoctorProfile />} />
-        {/* Future doctor routes */}
+        <Route path="profile" element={<DoctorProfile />} />card
+         <Route path="patient-records/all" element={<AllPatientRecords />} /> 
+         <Route path="patient-records/card" element={<SearchCard />} /> 
+         <Route path="consultation/patient/:patientId" element={<AllConsultations />} />  
+         <Route path="consultation/add/:patientId" element={<AddConsultation />} /> 
+        {/* Order-related routes grouped under /orders */}
+        {/* <Route path="prescription">
+          <Route path="new" element={<Newprescription />} />
+        </Route> */}
       </Route>
     </Routes>
   );
 };
 
-function App() {
+const PatientRoutes = () => {
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
-
-        <Routes>
-          {/* Public site shell */}
-          <Route path="/" element={<Layout />}>
-            <Route index element={<Home />} />
-
-            {/* Auth */}
-            <Route path="signin" element={<SignIn />} />
-            <Route path="signup" element={<SignUp />} />
-            <Route path="doctor-signup" element={<SignUp_Doctor />} />
-
-            {/* Profile */}
-            <Route path="account" element={<Profile />} />
-
-            {/* Redirect old appointments path to patient layout */}
-            <Route path="appointments" element={<Navigate to="/patient/book" replace />} />
-          </Route>
-
-          {/* Patient area with sidebar */}
-          <Route path="/patient" element={<PatientShell />}>
+    <Routes>
+   <Route path="/patient" element={<PatientShell />}>
             <Route index element={<Navigate to="book" replace />} />
             <Route path="profile" element={<Profile />} />
             <Route path="book" element={<BookAppointment />} />
             <Route path="my-appointments" element={<MyAppointments />} />
             <Route path="past-records" element={<PastRecords />} />
           </Route>
+    </Routes>
+  );
+}
 
-          {/* Doctor dashboard */}
-          <Route path="/doctor-dashboard/*" element={<DoctorRoutes />} />
-        </Routes>
 
-        <MobileBottomNav />
+//------------------------- main --------------------------
+
+import AllPatientRecords from "./pages/doctor/AllPatientRecords";
+import AllConsultations from "./pages/doctor/AllConsultations";
+import AddConsultation from "./pages/doctor/AddConsultation";
+import SearchCard from "./pages/doctor/SearchCard";
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <ToastProvider>
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route path="/" element={<Home />} />
+                <Route path="/signin" element={<SignIn />} /> 
+                <Route path="/signup" element={<SignUp />} />
+                <Route path="/doctor-signup" element={<SignUp_Doctor />} />
+                <Route path="/account" element={<Profile />} />
+              </Route>
+              {/* path for doctor dashboard */}
+              <Route
+                path="/doctor-dashboard/*"
+                element={<DoctorRoutes />}
+              />
+               <Route path="/*" element={<PatientRoutes />} />
+            </Routes>
+            <MobileBottomNav />
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

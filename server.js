@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import logger from "./utils/logger.js";
 import authRoutes from "./routes/auth.routes.js";
 import appointmentRoutes from "./routes/appointments.routes.js";
+import consultationRoutes from "./routes/consultation.route.js";
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.get("/api/test", (req, res) => {
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/appointments", appointmentRoutes);
+app.use("/api/consult", consultationRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

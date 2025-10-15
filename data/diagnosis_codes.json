@@ -1,0 +1,102 @@
+[
+  {
+    "code": "A00",
+    "name": "Cholera",
+    "description": "Cholera"
+  },
+  {
+    "code": "A00.0",
+    "name": "Cholera due to Vibrio cholerae 01, biovar cholerae",
+    "description": "Cholera due to Vibrio cholerae 01, biovar cholerae"
+  },
+  {
+    "code": "A00.1",
+    "name": "Cholera due to Vibrio cholerae 01, biovar eltor",
+    "description": "Cholera due to Vibrio cholerae 01, biovar eltor"
+  },
+  {
+    "code": "A00.9",
+    "name": "Cholera, unspecified",
+    "description": "Cholera, unspecified"
+  },
+  {
+    "code": "A01",
+    "name": "Typhoid and paratyphoid fevers",
+    "description": "Typhoid and paratyphoid fevers"
+  },
+  {
+    "code": "A01.0",
+    "name": "Typhoid fever",
+    "description": "Typhoid fever"
+  },
+  {
+    "code": "A01.00",
+    "name": "Typhoid fever unspecified",
+    "description": "Typhoid fever unspecified"
+  },
+  {
+    "code": "A01.01",
+    "name": "Typhoid meningitis",
+    "description": "Typhoid meningitis"
+  },
+  {
+    "code": "A01.02",
+    "name": "Typhoid fever with heart involvement",
+    "description": "Typhoid fever with heart involvement"
+  },
+  {
+    "code": "A01.03",
+    "name": "Typhoid pneumonia",
+    "description": "Typhoid pneumonia"
+  },
+  {
+    "code": "A01.04",
+    "name": "Typhoid arthritis",
+    "description": "Typhoid arthritis"
+  },
+  {
+    "code": "A01.05",
+    "name": "Typhoid osteomyelitis",
+    "description": "Typhoid osteomyelitis"
+  },
+  {
+    "code": "A01.09",
+    "name": "Typhoid fever with other complications",
+    "description": "Typhoid fever with other complications"
+  },
+  {
+    "code": "A01.1",
+    "name": "Paratyphoid fever A",
+    "description": "Paratyphoid fever A"
+  },
+  {
+    "code": "A01.2",
+    "name": "Paratyphoid fever B",
+    "description": "Paratyphoid fever B"
+  },
+  {
+    "code": "A01.3",
+    "name": "Paratyphoid fever C",
+    "description": "Paratyphoid fever C"
+  },
+  {
+    "code": "A01.4",
+    "name": "Paratyphoid fever, unspecified",
+    "description": "Paratyphoid fever, unspecified"
+  },
+  {
+    "code": "J45",
+    "name": "Asthma",
+    "description": "Asthma"
+  },
+  {
+    "code": "J45.99",
+    "name": "Other asthma",
+    "description": "Other asthma"
+  },
+  {
+    "code": "J45.998",
+    "name": "Other asthma",
+    "description": "Other asthma"
+  }
+]
