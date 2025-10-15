@@ -6,8 +6,8 @@ import {
   getDoctorsBySpecialty,
   getSlots,
   createAppointment,
-  payAppointment,
 } from "@/utils/api";
+import { createPayment } from "@/utils/paymentApi";
 import { toast } from "react-toastify";
 
 type Doctor = {
@@ -19,9 +19,12 @@ type Doctor = {
 
 type Slot = { _id: string; date: string; startTime: string; endTime: string };
 
-const cx = (...xs: (string | false | undefined)[]) => xs.filter(Boolean).join(" ");
+const cx = (...xs: (string | false | undefined)[]) =>
+  xs.filter(Boolean).join(" ");
 const avatar = (name: string) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=E6F0FF&color=0F3D87`;
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(
+    name
+  )}&background=E6F0FF&color=0F3D87`;
 
 // ➜ Feature flag: skip payment while your teammate finishes checkout
 const DEV_SKIP_PAYMENT = import.meta.env.VITE_DEV_SKIP_PAYMENT === "true";
@@ -101,7 +104,7 @@ export default function BookAppointment() {
   const startBooking = async () => {
     if (!selectedDoctor || !selectedSlot) return;
     try {
-      setBusy(true);      
+      setBusy(true);
 
       // 2) Create the appointment (status: PENDING)
       const res = await createAppointment(selectedDoctor, selectedSlot);
@@ -109,8 +112,8 @@ export default function BookAppointment() {
 
       // 3) Dev-mode: auto-confirm without showing payment modal
       if (DEV_SKIP_PAYMENT) {
-        await payAppointment(apptId);
-        toast.success("Appointment booked!");
+        // In dev mode, just show success without payment
+        toast.success("Appointment booked! (Dev mode - no payment required)");
         // refresh slots to reflect the taken time
         const r = await getSlots(selectedDoctor, dateISO);
         setSlots(r.data || []);
@@ -122,33 +125,47 @@ export default function BookAppointment() {
       // 4) Normal flow: open payment modal
       setAppointmentId(apptId);
       setPayOpen(true);
-    } catch (e: any) {
-      toast.error(e?.message || "Could not reserve slot. Please try another.");
+    } catch (e: unknown) {
+      const error = e as Error;
+      toast.error(
+        error?.message || "Could not reserve slot. Please try another."
+      );
       // refresh slots
       try {
         const r = await getSlots(selectedDoctor, dateISO);
         setSlots(r.data || []);
         setSelectedSlot("");
-      } catch {}
+      } catch (refreshError) {
+        console.error("Failed to refresh slots:", refreshError);
+      }
     } finally {
       setBusy(false);
     }
   };
 
-  // Payment submit (used only when DEV_SKIP_PAYMENT=false)
+  // Create payment and redirect to payment management
   const handlePay = async () => {
     if (!appointmentId) return;
     try {
       setBusy(true);
-      await payAppointment(appointmentId);
+
+      // Create payment record
+      const payment = await createPayment({
+        appointmentId,
+        amount: 2500, // Fixed consultation fee
+        paymentMethod: "card",
+      });
+
       setPayOpen(false);
-      toast.success("Appointment confirmed! A confirmation email will be sent.");
-      // Reset only the slot so user sees they booked
-      setSelectedSlot("");
-      const r = await getSlots(selectedDoctor, dateISO);
-      setSlots(r.data || []);
-    } catch (e: any) {
-      toast.error(e?.message || "Payment failed. Please try again.");
+      toast.success("Payment created! Redirecting to payment page...");
+
+      // Redirect to payment management page
+      window.location.href = `/patient/payments?payment_id=${payment.id}`;
+    } catch (e: unknown) {
+      const error = e as Error;
+      toast.error(
+        error?.message || "Failed to create payment. Please try again."
+      );
     } finally {
       setBusy(false);
     }
@@ -166,7 +183,9 @@ export default function BookAppointment() {
       </h1>
 
       {/* Tabs: Browse Doctors by Category */}
-      <div className="mb-4 text-slate-700 font-medium">Browse Doctors by Category</div>
+      <div className="mb-4 text-slate-700 font-medium">
+        Browse Doctors by Category
+      </div>
       <div className="flex flex-wrap gap-2 mb-6">
         {specialties.map((s) => (
           <button
@@ -185,7 +204,9 @@ export default function BookAppointment() {
       </div>
 
       {/* Available Doctors */}
-      <div className="text-lg font-medium text-slate-700 mb-3">Available Doctors</div>
+      <div className="text-lg font-medium text-slate-700 mb-3">
+        Available Doctors
+      </div>
       {loadingDoctors ? (
         <div className="text-slate-500 mb-6">Loading doctors…</div>
       ) : doctors.length === 0 ? (
@@ -212,10 +233,14 @@ export default function BookAppointment() {
                 />
                 <div className="flex-1">
                   <div className="font-semibold text-slate-800">{name}</div>
-                  <div className="text-sm text-slate-600">{d.specialization}</div>
+                  <div className="text-sm text-slate-600">
+                    {d.specialization}
+                  </div>
                   <div className="mt-1 text-amber-500">
                     {"★".repeat(5)}{" "}
-                    <span className="text-slate-500 text-xs ml-1">{rating.toFixed(1)}</span>
+                    <span className="text-slate-500 text-xs ml-1">
+                      {rating.toFixed(1)}
+                    </span>
                   </div>
                 </div>
               </button>
@@ -228,7 +253,9 @@ export default function BookAppointment() {
       <div className="grid md:grid-cols-12 gap-6 items-start">
         {/* Calendar */}
         <div className="md:col-span-7 lg:col-span-8 p-4 bg-white border rounded-xl">
-          <div className="mb-3 text-slate-700 font-medium">Select Date and Time</div>
+          <div className="mb-3 text-slate-700 font-medium">
+            Select Date and Time
+          </div>
           <DatePicker
             selected={selectedDate}
             onChange={(d) => setSelectedDate(d)}
@@ -242,14 +269,22 @@ export default function BookAppointment() {
         {/* Time Slots */}
         <div className="md:col-span-5 lg:col-span-4 p-4 bg-white border rounded-xl">
           <div className="flex items-center justify-between mb-3">
-            <div className="text-lg font-medium text-slate-700">Available Time Slots</div>
-            {loadingSlots && <span className="text-sm text-slate-500">Loading…</span>}
+            <div className="text-lg font-medium text-slate-700">
+              Available Time Slots
+            </div>
+            {loadingSlots && (
+              <span className="text-sm text-slate-500">Loading…</span>
+            )}
           </div>
 
           {!selectedDoctor ? (
-            <div className="text-slate-500 text-sm">Select a doctor to see time slots.</div>
+            <div className="text-slate-500 text-sm">
+              Select a doctor to see time slots.
+            </div>
           ) : slots.length === 0 ? (
-            <div className="text-slate-500 text-sm">No slots for the selected date.</div>
+            <div className="text-slate-500 text-sm">
+              No slots for the selected date.
+            </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
               {slots.map((s) => {
@@ -286,7 +321,11 @@ export default function BookAppointment() {
               : "bg-blue-600 hover:bg-blue-700 text-white"
           )}
         >
-          {busy ? "Please wait…" : DEV_SKIP_PAYMENT ? "Book Now" : "Make Payment and Book Now"}
+          {busy
+            ? "Please wait…"
+            : DEV_SKIP_PAYMENT
+            ? "Book Now"
+            : "Make Payment and Book Now"}
         </button>
       </div>
 
@@ -310,10 +349,12 @@ export default function BookAppointment() {
                 <div className="text-lg font-semibold">LKR 2,500.00</div>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-3">
-                <input className="border rounded-lg px-3 py-2" placeholder="Card Number" />
-                <input className="border rounded-lg px-3 py-2" placeholder="MM/YY" />
-                <input className="border rounded-lg px-3 py-2" placeholder="CVC" />
+              <div className="text-sm text-slate-600 bg-blue-50 p-3 rounded-lg">
+                <p className="font-medium mb-1">Secure Payment Processing</p>
+                <p>
+                  You will be redirected to our secure payment page where you
+                  can pay with your credit/debit card using Stripe.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
@@ -332,7 +373,7 @@ export default function BookAppointment() {
                     busy ? "bg-blue-400" : "bg-blue-600 hover:bg-blue-700"
                   )}
                 >
-                  {busy ? "Processing…" : "Pay & Confirm"}
+                  {busy ? "Creating Payment…" : "Proceed to Payment"}
                 </button>
               </div>
             </div>

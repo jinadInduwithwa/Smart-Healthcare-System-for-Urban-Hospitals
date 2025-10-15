@@ -108,6 +108,7 @@ export default function Sidebar() {
         <NavItem to="/patient/book" label="Book Appointment" />
         <NavItem to="/patient/my-appointments" label="My Appointments" />
         <NavItem to="/patient/past-records" label="Past Records" />
+        <NavItem to="/patient/payments" label="Payment Management" />
       </nav>
 
       {/* Logout Button */}
