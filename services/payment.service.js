@@ -1,8 +1,7 @@
 import Stripe from "stripe";
 import Payment from "../models/payment.model.js";
-import Appointment from "../models/appointment.model.js";
-import Patient from "../models/patient.model.js";
-import Doctor from "../models/doctor.model.js";
+import { Appointment } from "../models/appointment.model.js";
+import { Patient } from "../models/patient.model.js";
 import { AppError } from "../utils/AppError.js";
 import logger from "../utils/logger.js";
 

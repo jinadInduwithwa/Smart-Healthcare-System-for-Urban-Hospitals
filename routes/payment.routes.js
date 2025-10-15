@@ -11,7 +11,7 @@ import {
   generateReceipt,
   handleStripeWebhook,
 } from "../controllers/payment.controller.js";
-import { authenticate } from "../middleware/auth.middleware.js";
+import { auth, authorize } from "../middleware/auth.middleware.js";
 import {
   validateCreatePayment,
   validateStripeCheckout,
@@ -29,7 +29,7 @@ router.post(
 );
 
 // All routes below require authentication
-router.use(authenticate);
+router.use(auth);
 
 // Create a new payment
 router.post("/", validateCreatePayment, createPayment);
