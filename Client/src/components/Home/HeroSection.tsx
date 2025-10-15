@@ -1,6 +1,8 @@
 
 import { useState, useEffect } from "react";
 import CustomButton from "../UI/CustomButton";
+import { useNavigate } from "react-router-dom";
+
 
 const sliderData = [
   {
@@ -33,6 +35,7 @@ const sliderData = [
 ];
 
 function HeroSection() {
+  const navigate = useNavigate();
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
@@ -91,7 +94,7 @@ function HeroSection() {
                   title="Book Now"
                   bgColor="bg-blue-600"
                   textColor="text-white"
-                  onClick={() => {}}
+                  onClick={() => navigate("/appointments")}
                   style="hover:bg-blue-700 px-8 py-3 text-lg"
                 />
               </div>

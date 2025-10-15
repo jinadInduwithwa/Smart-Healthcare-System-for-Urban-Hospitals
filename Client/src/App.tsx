@@ -5,13 +5,29 @@ import { ToastProvider } from "@/context/ToastContext";
 //-------------- doctor --------------------------------------
 import DoctorLayout from "./pages/doctor/DoctorLayout";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
+import Overview from "./pages/doctor/Overview";
+
+// ------------------------- main --------------------------
+import Home from "./pages/Home";
+import Layout from "./components/UI/Layout";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp_Patient";
+import SignUp_Doctor from "./pages/SignUp_Doctor";
+// import Profile from "./pages/Profile";
+import MobileBottomNav from "./components/UI/MobileBottomNav";
+
+// ---------- Appointment (patient area) ----------
+import BookAppointment from "./pages/appointments/BookAppointment";
+import MyAppointments from "./pages/appointments/MyAppointments";
+import PastRecords from "./pages/appointments/PastRecords";
+import PatientShell from "./components/Patient/PatientShell";
+import Profile from "./pages/appointments/Profile";
 
 const DoctorRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<DoctorLayout />}>
-        <Route index element={<Navigate to="overview" replace />} />{" "}
-        {/* Relative path */}
+        <Route index element={<Navigate to="overview" replace />} />
         <Route path="overview" element={<Overview />} />
         <Route path="profile" element={<DoctorProfile />} />card
          <Route path="patient-records/all" element={<AllPatientRecords />} /> 
@@ -27,23 +43,29 @@ const DoctorRoutes = () => {
   );
 };
 
+const PatientRoutes = () => {
+  return (
+    <Routes>
+   <Route path="/patient" element={<PatientShell />}>
+            <Route index element={<Navigate to="book" replace />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="book" element={<BookAppointment />} />
+            <Route path="my-appointments" element={<MyAppointments />} />
+            <Route path="past-records" element={<PastRecords />} />
+          </Route>
+    </Routes>
+  );
+}
+
 
 //------------------------- main --------------------------
-import Home from "./pages/Home";
-import Layout from "./components/UI/Layout";
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp_Patient";
-import Profile from "./pages/Profile";
-import MobileBottomNav from "./components/UI/MobileBottomNav";
-import Overview from "./pages/doctor/Overview";
-import SignUp_Doctor from "./pages/SignUp_Doctor";
+
 import AllPatientRecords from "./pages/doctor/AllPatientRecords";
 import AllConsultations from "./pages/doctor/AllConsultations";
 import AddConsultation from "./pages/doctor/AddConsultation";
 import SearchCard from "./pages/doctor/SearchCard";
 
 function App() {
-  console.log("App component rendered");
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -61,6 +83,7 @@ function App() {
                 path="/doctor-dashboard/*"
                 element={<DoctorRoutes />}
               />
+               <Route path="/*" element={<PatientRoutes />} />
             </Routes>
             <MobileBottomNav />
         </ToastProvider>

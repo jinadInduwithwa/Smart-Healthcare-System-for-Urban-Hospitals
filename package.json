@@ -14,7 +14,8 @@
     "start": "node server.js",
     "test": "jest --coverage",
     "test:frontend": "cd Client && pnpm test",
-    "test:all": "pnpm test && pnpm run test:frontend"
+    "test:all": "pnpm test && pnpm run test:frontend",
+    "seed:slots": "node scripts/seed-slots.mjs"
   },
   "keywords": [
     "healthcare",
@@ -30,6 +31,7 @@
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-validator": "^7.2.1",
@@ -39,6 +41,9 @@
     "morgan": "^1.10.0",
     "nodemailer": "^7.0.6",
     "punycode": "^2.3.1",
+    "react-big-calendar": "^1.19.4",
+    "react-datepicker": "^8.7.0",
+    "react-toastify": "^11.0.5",
     "winston": "^3.8.2"
   },
   "devDependencies": {

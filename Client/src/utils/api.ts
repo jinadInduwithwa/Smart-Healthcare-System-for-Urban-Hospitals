@@ -1,3 +1,4 @@
+
 const BASE_URL = "http://localhost:3002/api";
 
 
@@ -23,7 +24,7 @@ interface UserStatusData {
 }
 
 interface UserRoleData {
-  role: "PATIENT" | "DOCTOR" | "ADMIN" ;
+  role: "PATIENT" | "DOCTOR" | "ADMIN";
 }
 
 // login
@@ -70,6 +71,7 @@ export const register = async (userData: FormData) => {
   }
 };
 
+
 export const verifyEmail = async (pin: string) => {
   try {
     const response = await fetch(`${BASE_URL}/auth/verify-email`, {
@@ -98,6 +100,7 @@ export const verifyEmail = async (pin: string) => {
     throw error instanceof Error ? error : new Error("Email verification failed");
   }
 };
+
 
 // get profile
 export const getProfile = async () => {
@@ -625,3 +628,117 @@ export const deleteConsultation = async (id: string) => {
     throw error;
   }
 };
+
+// helper to build Authorization headers from the stored token
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem("token");
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
+
+// ---------------- Appointment APIs ----------------
+
+export async function getSpecialties() {
+  const r = await fetch(`${BASE_URL}/appointments/specialties`);
+  if (!r.ok) throw new Error("Failed to load specialties");
+  return r.json();
+}
+
+export async function getDoctorsBySpecialty(s: string) {
+  const r = await fetch(`${BASE_URL}/appointments/doctors?specialty=${encodeURIComponent(s)}`);
+  if (!r.ok) throw new Error("Failed to load doctors");
+  return r.json();
+}
+
+export async function getSlots(doctorId: string, dateISO?: string) {
+  const r = await fetch(
+    `${BASE_URL}/appointments/slots?doctorId=${doctorId}${dateISO ? `&date=${dateISO}` : ""}`
+  );
+  if (!r.ok) throw new Error("Failed to load slots");
+  return r.json();
+}
+
+export async function createAppointment(doctorId: string, slotId: string) {
+  const r = await fetch(`${BASE_URL}/appointments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
+    body: JSON.stringify({ doctorId, slotId }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || "Failed to create appointment");
+  }
+  return r.json();
+}
+
+export async function payAppointment(appointmentId: string) {
+  const r = await fetch(`${BASE_URL}/appointments/pay`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
+    body: JSON.stringify({ appointmentId }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || "Payment failed");
+  }
+  return r.json();
+}
+
+// Patient's appointments (requires Authorization)
+export async function getMyAppointments() {
+  const r = await fetch(`${BASE_URL}/appointments/mine`, {
+    headers: { ...authHeaders() } as HeadersInit,
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || (r.status === 401 ? "Unauthorized" : "Failed to load appointments"));
+  }
+  return r.json(); // { data: [...] }
+}
+
+// Optional helpers hitting /users/me if your backend supports them
+export async function getMe() {
+  console.log("Calling getMe API"); // Debug log
+  const r = await fetch(`${BASE_URL}/auth/profile`, {
+    headers: { ...authHeaders() } as HeadersInit,
+  });
+  console.log("API Response status:", r.status); // Debug log
+  if (!r.ok) throw new Error("Failed to load user");
+  const j = await r.json();
+  console.log("API Response JSON:", j); // Debug log
+  return j.data ?? j;
+}
+
+export async function updateMe(payload: any) {
+  const r = await fetch(`${BASE_URL}/auth/profile`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error("Failed to update user");
+  const j = await r.json();
+  return j.data ?? j;
+}
+
+export async function uploadAvatar(file: File) {
+  const fd = new FormData();
+  fd.append("avatar", file);
+  const r = await fetch(`${BASE_URL}/users/me/avatar`, {
+    method: "PUT",
+    headers: { ...authHeaders() } as HeadersInit, // don't set Content-Type for FormData
+    body: fd,
+  });
+  if (!r.ok) throw new Error("Failed to upload avatar");
+  const j = await r.json();
+  return j.data ?? j; // { avatarUrl }
+}
+
+export async function changePassword(payload: { oldPassword: string; newPassword: string }) {
+  const r = await fetch(`${BASE_URL}/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error("Password change failed");
+  return r.json();
+}
