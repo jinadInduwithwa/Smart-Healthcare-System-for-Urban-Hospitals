@@ -25,8 +25,6 @@ The following Stripe configuration has been added to your `.env` file:
 
 ```env
 
-STRIPE_WEBHOOK_SECRET=
-STRIPE_CURRENCY=lkr
 ```
 
 **Note:** For production, get your webhook secret from Stripe Dashboard > Developers > Webhooks
