@@ -78,6 +78,14 @@ export default function Sidebar() {
     user?.patientId ??
     (user?._id ? `#${String(user._id).slice(-5).toUpperCase()}` : "—");
 
+  const handleLogout = () => {
+    if (auth && typeof auth.logout === "function") {
+      auth.logout();
+      // Optional: Redirect to login page
+      window.location.href = "/signin";
+    }
+  };
+
   return (
     <aside
       className="flex flex-col w-64 text-white rounded-r-xl"
@@ -105,6 +113,16 @@ export default function Sidebar() {
         <NavItem to="/patient/my-appointments" label="My Appointments" />
         <NavItem to="/patient/past-records" label="Past Records" />
       </nav>
+
+      {/* Logout Button */}
+      <div className="px-3 py-4 border-t border-white/20">
+        <button
+          onClick={handleLogout}
+          className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+        >
+          Logout
+        </button>
+      </div>
     </aside>
   );
 }

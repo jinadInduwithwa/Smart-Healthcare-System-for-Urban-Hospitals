@@ -116,7 +116,9 @@ export const getProfile = async () => {
       throw response;
     }
 
-    return await response.json();
+    const j = await response.json();
+    // The user data is nested under data.user in the response
+    return j.data?.user ?? j.data ?? j;
   } catch (error) {
     console.error("Profile fetch error:", error);
     throw error;
@@ -139,7 +141,9 @@ export const updateProfile = async (userData: Partial<FormData>) => {
       throw response;
     }
 
-    return await response.json();
+    const j = await response.json();
+    // The user data is nested under data.user in the response
+    return j.data?.user ?? j.data ?? j;
   } catch (error) {
     console.error("Profile update error:", error);
     throw error;
@@ -806,13 +810,18 @@ export async function getMyAppointments() {
 export async function getMe() {
   console.log("Calling getMe API"); // Debug log
   const r = await fetch(`${BASE_URL}/auth/profile`, {
-    headers: { ...authHeaders() } as HeadersInit,
-  });
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
   console.log("API Response status:", r.status); // Debug log
   if (!r.ok) throw new Error("Failed to load user");
   const j = await r.json();
   console.log("API Response JSON:", j); // Debug log
-  return j.data ?? j;
+  // The user data is nested under data.user in the response
+  return j.data?.user ?? j.data ?? j;
 }
 
 export async function updateMe(payload: any) {
@@ -823,7 +832,8 @@ export async function updateMe(payload: any) {
   });
   if (!r.ok) throw new Error("Failed to update user");
   const j = await r.json();
-  return j.data ?? j;
+  // The user data is nested under data.user in the response
+  return j.data?.user ?? j.data ?? j;
 }
 
 export async function uploadAvatar(file: File) {

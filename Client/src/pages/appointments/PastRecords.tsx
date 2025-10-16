@@ -5,17 +5,30 @@ import { getPastAppointments } from "@/utils/api"; // Function to fetch past app
 type ApiAppointment = {
   _id: string;
   status: "PENDING" | "CONFIRMED" | "CANCELLED";
-  doctor: {
+  doctor?: {
     userId?: {
       firstName?: string;
       lastName?: string;
+      email?: string;
     };
     specialization?: string;
+    licenseNumber?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    _id?: string;
   };
   availability: {
     date: string; // e.g., '2025-08-04T00:00:00.000Z'
     startTime: string; // e.g., '09:30'
+    _id?: string;
+    doctor?: string;
+    __v?: number;
   } | string; // Can be populated object or ObjectId string
+  patient?: string;
+  amountCents?: number;
+  createdAt?: string;
+  updatedAt?: string;
+  __v?: number;
 };
 
 type AppointmentCardProps = {
@@ -35,23 +48,34 @@ const AppointmentCard = ({ appointment }: AppointmentCardProps) => {
     );
   }
   
-  const doctorName = `${appointment.doctor.userId?.firstName ?? "Dr."} ${appointment.doctor.userId?.lastName ?? ""}`;
+  // Correctly extract doctor name from the nested structure with null checks
+  const doctorFirstName = appointment.doctor?.userId?.firstName ?? "Dr.";
+  const doctorLastName = appointment.doctor?.userId?.lastName ?? "";
+  const doctorName = `${doctorFirstName} ${doctorLastName}`.trim() || "Dr. Unknown";
+  
   const appointmentDate = new Date(availability.date);
   const formattedDate = appointmentDate.toLocaleDateString();
+  const formattedTime = availability.startTime;
   
   // Payment status is derived from appointment status
   const paymentStatus = appointment.status === "CONFIRMED" ? "Successful" : 
                        appointment.status === "PENDING" ? "Pending" : "Cancelled";
 
+  // Format amount if available
+  const formattedAmount = appointment.amountCents ? 
+    `Rs. ${(appointment.amountCents / 100).toFixed(2)}` : 
+    "Amount not specified";
+
   return (
     <div className="border rounded-lg p-4 mb-4 bg-white shadow-sm">
       <div className="font-semibold text-lg">{`Appointment with ${doctorName}`}</div>
       <div className="text-sm text-slate-600">
-        <div>{appointment.doctor.specialization}</div>
-        <div>{`${formattedDate} at ${availability.startTime}`}</div>
+        <div>{appointment.doctor?.specialization || "Specialization not specified"}</div>
+        <div>{`${formattedDate} at ${formattedTime}`}</div>
       </div>
       <div className="mt-2">
         <div className="text-sm text-slate-600">Status: <span className="font-semibold text-green-600">{paymentStatus}</span></div>
+        <div className="text-sm text-slate-600">Amount: <span className="font-semibold">{formattedAmount}</span></div>
       </div>
     </div>
   );
