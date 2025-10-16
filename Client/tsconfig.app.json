@@ -19,16 +19,16 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
-    /* Path mapping */
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["./src/*"]
-    },
-
     /* JSX support */
     "jsx": "react-jsx",
     "esModuleInterop": true,
-    "downlevelIteration": true
+    "downlevelIteration": true,
+
+    /* Path aliases */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src"]
 }
