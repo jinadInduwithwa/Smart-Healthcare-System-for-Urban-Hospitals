@@ -839,14 +839,15 @@ export async function updateMe(payload: any) {
 export async function uploadAvatar(file: File) {
   const fd = new FormData();
   fd.append("avatar", file);
-  const r = await fetch(`${BASE_URL}/users/me/avatar`, {
-    method: "PUT",
+  const r = await fetch(`${BASE_URL}/auth/profile/avatar`, {
+    method: "POST",
     headers: { ...authHeaders() } as HeadersInit, // don't set Content-Type for FormData
     body: fd,
   });
   if (!r.ok) throw new Error("Failed to upload avatar");
   const j = await r.json();
-  return j.data ?? j; // { avatarUrl }
+  // The user data is nested under data.user in the response
+  return j.data?.user ?? j.data ?? j; // { avatarUrl }
 }
 
 export async function changePassword(payload: { oldPassword: string; newPassword: string }) {
