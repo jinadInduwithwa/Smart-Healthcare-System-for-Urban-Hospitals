@@ -33,7 +33,7 @@ const menuItems: MenuItem[] = [
     title: "Appointments",
     icon: <FiCalendar />,
     subItems: [
-      { path: "/doctor-dashboard/appointments/schedule", title: "Schedule" },
+      { path: "/doctor-dashboard/appoinment/scheduled", title: "Schedule" },
       { path: "/doctor-dashboard/appointments/history", title: "History" },
     ],
   },

@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
+import { Doctor } from "../models/doctor.model.js";
 import logger from "../utils/logger.js";
 
 export const auth = async (req, res, next) => {
@@ -25,6 +26,15 @@ export const auth = async (req, res, next) => {
 
     // Attach user to request
     req.user = user;
+    
+    // If user is a doctor, also populate doctor information
+    if (user.role === "DOCTOR") {
+      const doctor = await Doctor.findOne({ userId: user._id });
+      if (doctor) {
+        req.user.doctor = doctor;
+      }
+    }
+    
     next();
   } catch (error) {
     logger.error("Authentication error:", error);
