@@ -73,6 +73,27 @@ const consultationSchema = new mongoose.Schema(
         trim: true,
       },
     ],
+    // New field for medical reports
+    medicalReports: [
+      {
+        url: {
+          type: String,
+          required: true,
+        },
+        publicId: {
+          type: String,
+          required: true,
+        },
+        fileName: {
+          type: String,
+          required: true,
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     auditTrail: [
       {
         action: {

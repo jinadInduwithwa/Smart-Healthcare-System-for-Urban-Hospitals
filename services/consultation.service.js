@@ -6,6 +6,7 @@ import logger from "../utils/logger.js";
 import { AppError } from "../utils/AppError.js";
 import { validateDiagnosisCode, searchDiagnosisCodes } from "../utils/icd.helper.js";
 import { validateTestName, searchTestNames } from "../utils/test.helper.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -24,6 +25,8 @@ export class ConsultationService {
     this.getConsultationsByPatient = this.getConsultationsByPatient.bind(this);
     this.updateConsultation = this.updateConsultation.bind(this);
     this.deleteConsultation = this.deleteConsultation.bind(this);
+    this.addMedicalReport = this.addMedicalReport.bind(this);
+    this.removeMedicalReport = this.removeMedicalReport.bind(this);
     
     // Load diagnosis codes and recommended tests data
     this.diagnosisCodes = this.loadDiagnosisCodes();
@@ -425,6 +428,20 @@ export class ConsultationService {
         throw new AppError("Unauthorized to delete this consultation", 403);
       }
 
+      // Delete medical reports from Cloudinary
+      if (consultation.medicalReports && consultation.medicalReports.length > 0) {
+        for (const report of consultation.medicalReports) {
+          try {
+            await deleteFromCloudinary(report.publicId);
+          } catch (error) {
+            logger.error("Failed to delete medical report from Cloudinary", {
+              publicId: report.publicId,
+              error: error.message
+            });
+          }
+        }
+      }
+
       // Mark as deleted
       consultation.deletedAt = new Date();
 
@@ -444,6 +461,149 @@ export class ConsultationService {
     } catch (error) {
       logger.error("Failed to delete consultation", { id, error: error.message });
       throw new AppError(error.message || "Failed to delete consultation", error.statusCode || 500);
+    }
+  }
+
+  /**
+   * Add a medical report to a consultation
+   * @param {string} consultationId - The ID of the consultation
+   * @param {Object} user - The authenticated user
+   * @param {Buffer} fileBuffer - The file buffer
+   * @param {string} originalname - The original filename
+   * @returns {Promise<Object>} - The updated consultation
+   */
+  async addMedicalReport(consultationId, user, fileBuffer, originalname) {
+    try {
+      logger.info("Attempting to add medical report", { consultationId, userId: user._id });
+
+      if (!mongoose.Types.ObjectId.isValid(consultationId)) {
+        throw new AppError("Invalid consultation ID format", 400);
+      }
+
+      const consultation = await Consultation.findById(consultationId);
+      if (!consultation || consultation.deletedAt) {
+        throw new AppError("Consultation not found", 404);
+      }
+
+      // Ensure only the creating doctor can add reports
+      if (user.role !== "DOCTOR" || consultation.doctor.toString() !== user._id.toString()) {
+        throw new AppError("Unauthorized to add medical report to this consultation", 403);
+      }
+
+      // Upload file to Cloudinary
+      const uploadResult = await uploadToCloudinary(fileBuffer, originalname);
+
+      // Add report to consultation
+      consultation.medicalReports = consultation.medicalReports || [];
+      consultation.medicalReports.push({
+        url: uploadResult.secure_url,
+        publicId: uploadResult.public_id,
+        fileName: originalname,
+        uploadedAt: new Date(),
+      });
+
+      // Add audit entry
+      consultation.addAuditEntry("UPDATED", user._id, { 
+        action: "ADD_MEDICAL_REPORT",
+        fileName: originalname
+      });
+
+      // Save consultation
+      const updatedConsultation = await consultation.save();
+
+      // Populate patient and doctor fields
+      const populatedConsultation = await Consultation.findById(updatedConsultation._id)
+        .populate("patient", "name email")
+        .populate("doctor", "name email")
+        .exec();
+
+      logger.info("Medical report added successfully", { consultationId });
+
+      return {
+        success: true,
+        data: populatedConsultation,
+        message: "Medical report added successfully",
+      };
+    } catch (error) {
+      logger.error("Failed to add medical report", { consultationId, error: error.message });
+      throw new AppError(error.message || "Failed to add medical report", error.statusCode || 500);
+    }
+  }
+
+  /**
+   * Remove a medical report from a consultation
+   * @param {string} consultationId - The ID of the consultation
+   * @param {string} reportId - The ID of the report to remove
+   * @param {Object} user - The authenticated user
+   * @returns {Promise<Object>} - The updated consultation
+   */
+  async removeMedicalReport(consultationId, reportId, user) {
+    try {
+      logger.info("Attempting to remove medical report", { consultationId, reportId, userId: user._id });
+
+      if (!mongoose.Types.ObjectId.isValid(consultationId)) {
+        throw new AppError("Invalid consultation ID format", 400);
+      }
+
+      const consultation = await Consultation.findById(consultationId);
+      if (!consultation || consultation.deletedAt) {
+        throw new AppError("Consultation not found", 404);
+      }
+
+      // Ensure only the creating doctor can remove reports
+      if (user.role !== "DOCTOR" || consultation.doctor.toString() !== user._id.toString()) {
+        throw new AppError("Unauthorized to remove medical report from this consultation", 403);
+      }
+
+      // Find the report
+      const reportIndex = consultation.medicalReports.findIndex(
+        report => report._id.toString() === reportId
+      );
+
+      if (reportIndex === -1) {
+        throw new AppError("Medical report not found", 404);
+      }
+
+      const report = consultation.medicalReports[reportIndex];
+
+      // Delete file from Cloudinary
+      try {
+        await deleteFromCloudinary(report.publicId);
+      } catch (error) {
+        logger.error("Failed to delete medical report from Cloudinary", {
+          publicId: report.publicId,
+          error: error.message
+        });
+      }
+
+      // Remove report from consultation
+      consultation.medicalReports.splice(reportIndex, 1);
+
+      // Add audit entry
+      consultation.addAuditEntry("UPDATED", user._id, { 
+        action: "REMOVE_MEDICAL_REPORT",
+        fileName: report.fileName
+      });
+
+      // Save consultation
+      const updatedConsultation = await consultation.save();
+
+      // Populate patient and doctor fields
+      const populatedConsultation = await Consultation.findById(updatedConsultation._id)
+        .populate("patient", "name email")
+        .populate("doctor", "name email")
+        .exec();
+
+      logger.info("Medical report removed successfully", { consultationId, reportId });
+
+      return {
+        success: true,
+        data: populatedConsultation,
+        message: "Medical report removed successfully",
+      };
+    } catch (error) {
+      logger.error("Failed to remove medical report", { consultationId, reportId, error: error.message });
+      throw new AppError(error.message || "Failed to remove medical report", error.statusCode || 500);
     }
   }
 }

@@ -6,6 +6,9 @@ import { validateAddConsultation, validateSearchDiagnosis, validateSearchTests, 
 const router = express.Router();
 const consultationController = new ConsultationController();
 
+// Get multer upload middleware
+const upload = consultationController.getUploadMiddleware();
+
 // Protected route for adding a consultation (only doctors)
 router.post(
   "/",
@@ -71,6 +74,23 @@ router.delete(
   auth,
   authorize("DOCTOR"),
   consultationController.deleteConsultation
+);
+
+// Protected route for adding a medical report to a consultation (only the creating doctor)
+router.post(
+  "/:id/reports",
+  auth,
+  authorize("DOCTOR"),
+  upload,
+  consultationController.addMedicalReport
+);
+
+// Protected route for removing a medical report from a consultation (only the creating doctor)
+router.delete(
+  "/:id/reports/:reportId",
+  auth,
+  authorize("DOCTOR"),
+  consultationController.removeMedicalReport
 );
 
 export default router;
