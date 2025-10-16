@@ -1,4 +1,3 @@
-
 const BASE_URL = "http://localhost:3002/api";
 
 
@@ -339,6 +338,14 @@ interface ClinicalNotes {
   objective?: string;
 }
 
+interface MedicalReport {
+  _id: string;
+  url: string;
+  publicId: string;
+  fileName: string;
+  uploadedAt: string;
+}
+
 interface ConsultationData {
   patient: string;
   doctor: string;
@@ -348,6 +355,7 @@ interface ConsultationData {
   medications?: Medication[];
   clinicalNotes?: ClinicalNotes;
   recommendedTests?: string[];
+  medicalReports?: MedicalReport[];
 }
 
 interface TestName {
@@ -625,6 +633,65 @@ export const deleteConsultation = async (id: string) => {
     return await response.json();
   } catch (error) {
     console.error("Delete consultation error:", error);
+    throw error;
+  }
+};
+
+// Add a medical report to a consultation
+export const addMedicalReport = async (consultationId: string, file: File) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const formData = new FormData();
+    formData.append("medicalReport", file);
+
+    const response = await fetch(`${BASE_URL}/consult/${consultationId}/reports`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to upload medical report");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Add medical report error:", error);
+    throw error;
+  }
+};
+
+// Remove a medical report from a consultation
+export const removeMedicalReport = async (consultationId: string, reportId: string) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(`${BASE_URL}/consult/${consultationId}/reports/${reportId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to remove medical report");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Remove medical report error:", error);
     throw error;
   }
 };
