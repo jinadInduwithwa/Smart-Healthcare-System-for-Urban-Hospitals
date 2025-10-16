@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getConsultationsByPatient } from '../../utils/api';
-import { FiSearch, FiCalendar, FiFilter, FiX, FiChevronLeft, FiChevronRight, FiChevronDown } from 'react-icons/fi';
+import { getConsultationsByPatient, downloadMedicalReport } from '../../utils/api';
+import { FiSearch, FiCalendar, FiFilter, FiX, FiChevronLeft, FiChevronRight, FiChevronDown, FiFile, FiDownload } from 'react-icons/fi';
 
 // Define interface for Consultation
 interface Diagnosis {
@@ -20,7 +20,16 @@ interface Medication {
   frequency: string;
 }
 
+interface MedicalReport {
+  _id: string;
+  url: string;
+  publicId: string;
+  fileName: string;
+  uploadedAt: string;
+}
+
 interface Consultation {
+  _id: string;
   patientId: string;
   consultationDate: string;
   diagnosis: Diagnosis[];
@@ -28,6 +37,7 @@ interface Consultation {
   medications: Medication[];
   recommendedTests: string[];
   status: string;
+  medicalReports: MedicalReport[];
 }
 
 const AllConsultations: React.FC = () => {
@@ -41,7 +51,7 @@ const AllConsultations: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [expandedConsultations, setExpandedConsultations] = useState<Set<number>>(new Set());
+  const [expandedConsultations, setExpandedConsultations] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const consultationsPerPage = 5;
   const { patientId } = useParams<{ patientId: string }>();
@@ -63,6 +73,7 @@ const AllConsultations: React.FC = () => {
               throw new Error('Invalid consultation data: patient ID is missing');
             }
             return {
+              _id: consult._id,
               patientId: consult.patient._id,
               consultationDate: consult.consultationDate,
               diagnosis: consult.diagnosis || [],
@@ -73,6 +84,7 @@ const AllConsultations: React.FC = () => {
               medications: consult.medications || [],
               recommendedTests: consult.recommendedTests || [],
               status: consult.status || 'UNKNOWN',
+              medicalReports: consult.medicalReports || [],
             };
           });
           setConsultations(transformedConsultations);
@@ -114,6 +126,7 @@ const AllConsultations: React.FC = () => {
       const testsStr = consult.recommendedTests.join(' ').toLowerCase();
       const statusStr = consult.status.toLowerCase();
       const patientIdStr = consult.patientId.toLowerCase();
+      const reportsStr = consult.medicalReports.map(r => r.fileName).join(' ').toLowerCase();
 
       return (
         diagnosisStr.includes(searchLower) ||
@@ -121,7 +134,8 @@ const AllConsultations: React.FC = () => {
         medsStr.includes(searchLower) ||
         testsStr.includes(searchLower) ||
         statusStr.includes(searchLower) ||
-        patientIdStr.includes(searchLower)
+        patientIdStr.includes(searchLower) ||
+        reportsStr.includes(searchLower)
       );
     });
 
@@ -148,12 +162,12 @@ const AllConsultations: React.FC = () => {
     }
   };
 
-  const toggleConsultation = (index: number) => {
+  const toggleConsultation = (id: string) => {
     const newExpanded = new Set(expandedConsultations);
-    if (newExpanded.has(index)) {
-      newExpanded.delete(index);
+    if (newExpanded.has(id)) {
+      newExpanded.delete(id);
     } else {
-      newExpanded.add(index);
+      newExpanded.add(id);
     }
     setExpandedConsultations(newExpanded);
   };
@@ -178,6 +192,16 @@ const AllConsultations: React.FC = () => {
     }).format(new Date(dateStr));
   };
 
+  const formatDateTime = (dateStr: string) => {
+    return new Intl.DateTimeFormat('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(dateStr));
+  };
+
   const getStatusClass = (status: string) => {
     switch (status) {
       case 'SCHEDULED':
@@ -196,6 +220,33 @@ const AllConsultations: React.FC = () => {
     setFromDate('');
     setToDate('');
     setStatusFilter('ALL');
+  };
+
+  const getFileIcon = (fileName: string) => {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'pdf':
+        return '📄';
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+      case 'gif':
+        return '🖼️';
+      case 'doc':
+      case 'docx':
+        return '📝';
+      default:
+        return '📁';
+    }
+  };
+
+  const handleDownloadReport = async (url: string, fileName: string) => {
+    try {
+      await downloadMedicalReport(url, fileName);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      alert('Failed to download the medical report. Please try again.');
+    }
   };
 
   return (
@@ -245,7 +296,7 @@ const AllConsultations: React.FC = () => {
             </div>
             <input
               type="text"
-              placeholder="Search by diagnosis, notes, medications, tests, status, or patient ID"
+              placeholder="Search by diagnosis, notes, medications, tests, status, patient ID, or report names"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -327,19 +378,18 @@ const AllConsultations: React.FC = () => {
           </div>
         )}
         
-        {currentConsultations.map((consult, index) => {
-          const globalIndex = indexOfFirstConsult + index;
-          const isExpanded = expandedConsultations.has(globalIndex);
+        {currentConsultations.map((consult) => {
+          const isExpanded = expandedConsultations.has(consult._id);
           
           return (
             <div 
-              key={globalIndex} 
+              key={consult._id} 
               className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md"
             >
               {/* Card Header */}
               <div 
                 className="p-5 cursor-pointer flex justify-between items-center"
-                onClick={() => toggleConsultation(globalIndex)}
+                onClick={() => toggleConsultation(consult._id)}
               >
                 <div className="flex items-center space-x-4">
                   <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
@@ -466,6 +516,42 @@ const AllConsultations: React.FC = () => {
                           <p className="text-gray-500 dark:text-gray-400">No tests recommended</p>
                         )}
                       </div>
+                      
+                      {/* Medical Reports Section */}
+                      {consult.medicalReports && consult.medicalReports.length > 0 && (
+                        <div className="mt-5">
+                          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
+                            <FiFile className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" />
+                            Medical Reports
+                          </h4>
+                          <div className="mt-2">
+                            <ul className="space-y-2">
+                              {consult.medicalReports.map((report) => (
+                                <li key={report._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                                  <div className="flex items-center">
+                                    <span className="text-lg mr-2">{getFileIcon(report.fileName)}</span>
+                                    <div>
+                                      <p className="font-medium text-gray-900 dark:text-white text-sm truncate max-w-[150px]">
+                                        {report.fileName}
+                                      </p>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        {formatDateTime(report.uploadedAt)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <button
+                                    onClick={() => handleDownloadReport(report.url, report.fileName)}
+                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                                    title="Download report"
+                                  >
+                                    <FiDownload className="h-5 w-5" />
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                   

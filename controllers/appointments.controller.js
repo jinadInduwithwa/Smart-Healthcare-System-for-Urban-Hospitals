@@ -43,3 +43,59 @@ export const getMine = async (req, res, next) => {
     res.json({ data: await svc.listAppointmentsForPatient({ patientId }) });
   } catch (e) { next(e); }
 };
+
+// Add this new controller method for fetching doctor appointments
+export const getDoctorAppointments = async (req, res, next) => {
+  try {
+    // Check if user is a doctor and has a doctor profile
+    if (!req.user || req.user.role !== 'DOCTOR') {
+      return res.status(403).json({ message: 'Access denied. Doctors only.' });
+    }
+    
+    if (!req.user.doctor || !req.user.doctor._id) {
+      return res.status(400).json({ message: 'Doctor profile not found' });
+    }
+    
+    const doctorId = req.user.doctor._id;
+    res.json({ data: await svc.listAppointmentsForDoctor({ doctorId }) });
+  } catch (e) { 
+    next(e); 
+  }
+};
+
+// Add this new controller method for updating appointment status
+export const updateAppointmentStatus = async (req, res, next) => {
+  try {
+    // Check if user is a doctor and has a doctor profile
+    if (!req.user || req.user.role !== 'DOCTOR') {
+      return res.status(403).json({ message: 'Access denied. Doctors only.' });
+    }
+    
+    if (!req.user.doctor || !req.user.doctor._id) {
+      return res.status(400).json({ message: 'Doctor profile not found' });
+    }
+    
+    const { appointmentId } = req.params;
+    const { status } = req.body;
+    const doctorId = req.user.doctor._id;
+    
+    // Validate status
+    const validStatuses = ['PENDING', 'CONFIRMED', 'CANCELLED'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
+    
+    const updatedAppointment = await svc.updateAppointmentStatus({ 
+      appointmentId, 
+      status, 
+      doctorId 
+    });
+    
+    res.json({ 
+      message: 'Appointment status updated successfully', 
+      data: updatedAppointment 
+    });
+  } catch (e) { 
+    next(e); 
+  }
+};

@@ -1,4 +1,3 @@
-
 const BASE_URL = "http://localhost:3002/api";
 
 
@@ -339,7 +338,16 @@ interface ClinicalNotes {
   objective?: string;
 }
 
+interface MedicalReport {
+  _id: string;
+  url: string;
+  publicId: string;
+  fileName: string;
+  uploadedAt: string;
+}
+
 interface ConsultationData {
+  _id?: string;
   patient: string;
   doctor: string;
   consultationDate: string;
@@ -348,6 +356,7 @@ interface ConsultationData {
   medications?: Medication[];
   clinicalNotes?: ClinicalNotes;
   recommendedTests?: string[];
+  medicalReports?: MedicalReport[];
 }
 
 interface TestName {
@@ -484,7 +493,7 @@ export const searchTestNames = async ({ query, maxResults = 10 }: SearchQuery) =
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
     );
@@ -519,7 +528,7 @@ export const searchDrugs = async ({ query, maxResults = 10 }: SearchQuery) => {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
     );
@@ -576,7 +585,7 @@ export const updateConsultation = async (id: string, consultationData: Partial<C
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       body: JSON.stringify(consultationData),
     });
@@ -613,7 +622,7 @@ export const deleteConsultation = async (id: string) => {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
 
@@ -626,6 +635,103 @@ export const deleteConsultation = async (id: string) => {
   } catch (error) {
     console.error("Delete consultation error:", error);
     throw error;
+  }
+};
+
+// Add a medical report to a consultation
+export const addMedicalReport = async (consultationId: string, file: File) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const formData = new FormData();
+    formData.append("medicalReport", file);
+
+    const response = await fetch(`${BASE_URL}/consult/${consultationId}/reports`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to upload medical report");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Add medical report error:", error);
+    throw error;
+  }
+};
+
+// Remove a medical report from a consultation
+export const removeMedicalReport = async (consultationId: string, reportId: string) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(`${BASE_URL}/consult/${consultationId}/reports/${reportId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to remove medical report");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Remove medical report error:", error);
+    throw error;
+  }
+};
+
+// Download a medical report using Cloudinary URL directly
+export const downloadMedicalReport = async (url: string, fileName: string) => {
+  try {
+    // For Cloudinary URLs, we need to handle them properly to avoid CORS issues
+    // First, try to fetch the file as a blob and then create a download link
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+    }
+    
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = fileName || 'medical-report';
+    
+    // Append to the body
+    document.body.appendChild(link);
+    
+    // Trigger the download
+    link.click();
+    
+    // Remove the link from the body
+    document.body.removeChild(link);
+    
+    // Clean up the object URL
+    window.URL.revokeObjectURL(downloadUrl);
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Download medical report error:", error);
+    throw new Error("Failed to download medical report. Please try again.");
   }
 };
 
@@ -753,3 +859,31 @@ export const getPastAppointments = async () => {
   }
   return response.json();
 };
+// Doctor's appointments (requires Authorization)
+export async function getDoctorAppointments() {
+  const r = await fetch(`${BASE_URL}/appointments/doctor`, {
+    headers: { ...authHeaders() } as HeadersInit,
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || (r.status === 401 ? "Unauthorized" : "Failed to load appointments"));
+  }
+  return r.json(); // { data: [...] }
+}
+
+// Update appointment status (requires Authorization)
+export async function updateAppointmentStatus(appointmentId: string, status: 'PENDING' | 'CONFIRMED' | 'CANCELLED') {
+  const r = await fetch(`${BASE_URL}/appointments/${appointmentId}/status`, {
+    method: "PATCH",
+    headers: { 
+      "Content-Type": "application/json",
+      ...authHeaders()
+    } as HeadersInit,
+    body: JSON.stringify({ status }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || (r.status === 401 ? "Unauthorized" : "Failed to update appointment status"));
+  }
+  return r.json();
+}
