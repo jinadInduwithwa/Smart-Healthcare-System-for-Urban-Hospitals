@@ -94,7 +94,7 @@ function HeroSection() {
                   title="Book Now"
                   bgColor="bg-blue-600"
                   textColor="text-white"
-                  onClick={() => navigate("/appointments")}
+                  onClick={() => navigate("/patient")}
                   style="hover:bg-blue-700 px-8 py-3 text-lg"
                 />
               </div>

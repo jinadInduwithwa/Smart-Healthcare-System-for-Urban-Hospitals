@@ -742,3 +742,14 @@ export async function changePassword(payload: { oldPassword: string; newPassword
   if (!r.ok) throw new Error("Password change failed");
   return r.json();
 }
+
+export const getPastAppointments = async () => {
+  const response = await fetch(`${BASE_URL}/appointments/mine`, {
+    headers: { ...authHeaders() } as HeadersInit,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.message || (response.status === 401 ? "Unauthorized" : "Failed to load past appointments"));
+  }
+  return response.json();
+};
