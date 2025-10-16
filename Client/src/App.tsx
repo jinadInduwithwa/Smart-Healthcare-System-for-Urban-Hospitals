@@ -175,6 +175,7 @@ import PatientManagement from "./pages/AdminDashboard/PatientManagement";
 import PatientReport from "./pages/AdminDashboard/PatientReport";
 import DoctorReport from "./pages/AdminDashboard/DoctorReport";
 import FinancialReport from "./pages/AdminDashboard/FinancialReport";
+import Settings from './pages/AdminDashboard/Settings';
 
 const DoctorRoutes = () => {
   return (
@@ -223,6 +224,7 @@ function App() {
             <Route path="reports/patient" element={<PatientReport />} />
             <Route path="reports/doctor" element={<DoctorReport />} />
             <Route path="reports/financial" element={<FinancialReport />} />
+            <Route path="settings" element={<Settings />} />
             
           </Route>
         </Routes>

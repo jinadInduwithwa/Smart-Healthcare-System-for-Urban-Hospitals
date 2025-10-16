@@ -475,7 +475,7 @@ export const updateProfile = async (userData: Partial<FormData>): Promise<any> =
     if (!token) throw new Error("No authentication token found");
 
     const response = await fetch(`${BASE_URL}/auth/profile`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

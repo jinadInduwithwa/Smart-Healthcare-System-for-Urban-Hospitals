@@ -12,6 +12,7 @@ import patientMgrRoutes from "./routes/patientMgr.routes.js";
 import appointmentsRoutes from "./routes/appointments.routes.js";
 import consultationRoutes from "./routes/consultation.route.js";
 import reportRoutes from "./routes/report.routes.js";
+import settingsRoutes from './routes/settings.routes.js';
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use("/api", patientMgrRoutes);
 app.use("/api/appointments", appointmentsRoutes);
 app.use("/api/consultations", consultationRoutes);
 app.use("/api/reports", reportRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
