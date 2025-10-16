@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getConsultationsByPatient } from '../../utils/api';
+import { getConsultationsByPatient, downloadMedicalReport } from '../../utils/api';
 import { FiSearch, FiCalendar, FiFilter, FiX, FiChevronLeft, FiChevronRight, FiChevronDown, FiFile, FiDownload } from 'react-icons/fi';
 
 // Define interface for Consultation
@@ -237,6 +237,15 @@ const AllConsultations: React.FC = () => {
         return '📝';
       default:
         return '📁';
+    }
+  };
+
+  const handleDownloadReport = async (url: string, fileName: string) => {
+    try {
+      await downloadMedicalReport(url, fileName);
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      alert('Failed to download the medical report. Please try again.');
     }
   };
 
@@ -530,15 +539,13 @@ const AllConsultations: React.FC = () => {
                                       </p>
                                     </div>
                                   </div>
-                                  <a
-                                    href={report.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                  <button
+                                    onClick={() => handleDownloadReport(report.url, report.fileName)}
                                     className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
                                     title="Download report"
                                   >
                                     <FiDownload className="h-5 w-5" />
-                                  </a>
+                                  </button>
                                 </li>
                               ))}
                             </ul>

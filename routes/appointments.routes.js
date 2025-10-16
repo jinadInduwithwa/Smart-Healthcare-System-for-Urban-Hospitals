@@ -8,6 +8,8 @@ import {
   postCreate,
   postPay,
   getMine,
+  getDoctorAppointments,
+  updateAppointmentStatus, // Add this import
 } from "../controllers/appointments.controller.js";
 
 const router = Router();
@@ -19,5 +21,11 @@ router.get("/slots", getSlots);
 router.post("/", auth, postCreate);
 router.post("/pay", auth, postPay);
 router.get("/mine", auth, getMine);
+
+// Add this new route for doctor appointments
+router.get("/doctor", auth, getDoctorAppointments);
+
+// Add this new route for updating appointment status
+router.patch("/:appointmentId/status", auth, updateAppointmentStatus);
 
 export default router;
