@@ -56,13 +56,13 @@ export const validateStripeCheckout = [
   body("successUrl")
     .notEmpty()
     .withMessage("Success URL is required")
-    .isURL()
+    .matches(/^https?:\/\/.+/)
     .withMessage("Success URL must be a valid URL"),
 
   body("cancelUrl")
     .notEmpty()
     .withMessage("Cancel URL is required")
-    .isURL()
+    .matches(/^https?:\/\/.+/)
     .withMessage("Cancel URL must be a valid URL"),
 
   validate,

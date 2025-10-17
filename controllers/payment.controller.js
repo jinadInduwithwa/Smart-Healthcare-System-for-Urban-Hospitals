@@ -43,6 +43,9 @@ export const createStripeCheckout = async (req, res, next) => {
     const { paymentId } = req.params;
     const { successUrl, cancelUrl } = req.body;
 
+    // Debug logging
+    logger.info(`Stripe checkout URLs - Success: ${successUrl}, Cancel: ${cancelUrl}`);
+
     if (!successUrl || !cancelUrl) {
       throw new AppError("Success URL and Cancel URL are required", 400);
     }

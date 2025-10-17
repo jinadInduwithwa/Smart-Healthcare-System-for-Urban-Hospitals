@@ -73,11 +73,11 @@ class PaymentService {
       const payment = await Payment.findById(paymentId)
         .populate({
           path: "patient",
-          populate: { path: "user" },
+          populate: { path: "userId" },
         })
         .populate({
           path: "doctor",
-          populate: { path: "user" },
+          populate: { path: "userId" },
         })
         .populate("appointment");
 
@@ -94,11 +94,11 @@ class PaymentService {
 
       if (!stripeCustomerId) {
         const customer = await stripe.customers.create({
-          email: payment.patient.user.email,
-          name: `${payment.patient.user.firstName} ${payment.patient.user.lastName}`,
+          email: payment.patient.userId.email,
+          name: `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}`,
           metadata: {
             patientId: payment.patient._id.toString(),
-            userId: payment.patient.user._id.toString(),
+            userId: payment.patient.userId._id.toString(),
           },
         });
         stripeCustomerId = customer.id;
@@ -117,10 +117,10 @@ class PaymentService {
                 name: `Medical Appointment - ${payment.invoiceNumber}`,
                 description:
                   payment.description ||
-                  `Appointment with Dr. ${payment.doctor.user.firstName} ${payment.doctor.user.lastName}`,
+                  `Appointment with Dr. ${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}`,
                 metadata: {
                   appointmentId: payment.appointment._id.toString(),
-                  doctorName: `${payment.doctor.user.firstName} ${payment.doctor.user.lastName}`,
+                  doctorName: `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}`,
                   specialization: payment.doctor.specialization,
                 },
               },
