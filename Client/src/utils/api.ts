@@ -1223,3 +1223,56 @@ export const getPatientCheckInReport = async (startDate: string, endDate: string
     throw error;
   }
 };
+
+/* ------------------ Medical History APIs (NEW) ------------------ */
+
+// Types for the medical-history response (aligns with your Consultation schema)
+export type HistoryDiagnosis = { code: string; description: string };
+export type HistoryMedication = { drug: string; dosage: string; frequency: string };
+export type HistoryClinicalNotes = { subjective?: string; objective?: string };
+export type HistoryReport = { url: string; fileName: string; uploadedAt?: string };
+
+export type HistoryItem = {
+  id: string;
+  consultationDate: string;
+  status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+  doctor: { id: string; name: string; email?: string | null; avatarUrl?: string | null } | null;
+  diagnosis: HistoryDiagnosis[];
+  clinicalNotes: HistoryClinicalNotes;
+  medications: HistoryMedication[];
+  recommendedTests: string[];
+  medicalReports: HistoryReport[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MedicalHistoryResponse = {
+  count: number;
+  history: HistoryItem[];
+};
+
+// Logged-in patient: get own medical history
+export async function getMyMedicalHistory(): Promise<MedicalHistoryResponse> {
+  const r = await fetch(`${BASE_URL}/medical-history/me`, {
+    method: "GET",
+    headers: { ...authHeaders() } as HeadersInit,
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || (r.status === 401 ? "Unauthorized" : "Failed to load medical history"));
+  }
+  return r.json();
+}
+
+// Doctor/Admin: get a patient's medical history by userId
+export async function getMedicalHistoryByUserId(userId: string): Promise<MedicalHistoryResponse> {
+  const r = await fetch(`${BASE_URL}/medical-history/patient/${encodeURIComponent(userId)}`, {
+    method: "GET",
+    headers: { ...authHeaders() } as HeadersInit,
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || (r.status === 403 ? "Forbidden" : "Failed to load patient's medical history"));
+  }
+  return r.json();
+}

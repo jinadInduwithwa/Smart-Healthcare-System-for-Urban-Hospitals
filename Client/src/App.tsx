@@ -55,6 +55,7 @@ const PatientRoutes = () => {
         <Route path="my-appointments" element={<MyAppointments />} />
         <Route path="past-records" element={<PastRecords />} />
         <Route path="payments" element={<PaymentManagement />} />
+        <Route path="medical-history" element={<MedicalHistory />} />
       </Route>
     </Routes>
   );
@@ -100,6 +101,7 @@ import AllConsultations from "./pages/doctor/AllConsultations";
 import AddConsultation from "./pages/doctor/AddConsultation";
 import SearchCard from "./pages/doctor/SearchCard";
 import ScheduledAppointments from "./pages/doctor/ScheduledAppointments";
+import MedicalHistory from "./pages/patient/MedicalHistory";
 
 function App() {
   return (
