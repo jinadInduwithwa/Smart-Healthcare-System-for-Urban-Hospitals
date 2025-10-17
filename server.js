@@ -9,6 +9,8 @@ import logger from "./utils/logger.js";
 import authRoutes from "./routes/auth.routes.js";
 import appointmentRoutes from "./routes/appointments.routes.js";
 import consultationRoutes from "./routes/consultation.route.js";
+import reportRoutes from "./routes/report.routes.js";
+import settingsRoutes from './routes/settings.routes.js';
 import paymentRoutes from "./routes/payment.routes.js";
 
 const app = express();
@@ -36,6 +38,8 @@ app.get("/api/test", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/consult", consultationRoutes);
+app.use("/api/reports", reportRoutes);
+app.use('/api/settings', settingsRoutes);
 app.use("/api/payments", paymentRoutes);
 
 // Error handling middleware

@@ -3,7 +3,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { addConsultation, searchTestNames, searchDiagnosisCodes, searchDrugs, addMedicalReport } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { FiUser, FiPlus, FiTrash2, FiCalendar, FiCheck, FiX, FiSearch, FiBook, FiUpload, FiFile, FiDownload } from 'react-icons/fi';
+import { FiUser, FiCalendar, FiCheck, FiX, FiBook, FiUpload, FiFile } from 'react-icons/fi';
+import TabNavigation from '../../components/Doctor/TabNavigation';
+import DiagnosisInput from '../../components/Doctor/DiagnosisInput';
+import MedicationInput from '../../components/Doctor/MedicationInput';
+import TestInput from '../../components/Doctor/TestInput';
+import MedicalReportUpload from '../../components/Doctor/MedicalReportUpload';
+import FormActions from '../../components/Doctor/FormActions';
+import ClinicalNotes from '../../components/Doctor/ClinicalNotes';
+import PatientDoctorInfo from '../../components/Doctor/PatientDoctorInfo';
+import ConsultationHeader from '../../components/Doctor/ConsultationHeader';
+import LoadingIndicator from '../../components/Doctor/LoadingIndicator';
 
 // Define interfaces
 interface Diagnosis {
@@ -267,8 +277,8 @@ const AddConsultation: React.FC = () => {
     if (selectedDrugs[index] && selectedDrugs[index]?.name !== value) {
       setSelectedDrugs(prev => ({ ...prev, [index]: null }));
       // Reset dosage and frequency when drug name changes
-      handleDosageChange(index, '');
-      handleFrequencyChange(index, '');
+      handleMedicationChange(index, 'dosage', '');
+      handleMedicationChange(index, 'frequency', '');
     }
 
     // Always trigger search for drug suggestions, even for single characters
@@ -567,744 +577,88 @@ const AddConsultation: React.FC = () => {
   return (
     <div className="p-4 sm:p-6 min-h-screen">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 dark:text-white">New Consultation</h1>
-            <p className="text-gray-600 dark:text-gray-300 mt-1">Create a new patient consultation record</p>
-          </div>
-          <div className="mt-4 md:mt-0 flex space-x-3">
-            <button
-              onClick={() => navigate(`/doctor-dashboard/consultation/patient/${formData.patient}`)}
-              className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              <FiBook className="mr-2" />
-              Patient History
-            </button>
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white rounded-lg transition-colors"
-            >
-              <FiX className="mr-2" />
-              Cancel
-            </button>
-          </div>
-        </div>
+        <ConsultationHeader patientId={formData.patient} />
 
-        {isLoading && (
-          <div className="mb-6 p-4 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-xl flex items-center">
-            <svg className="animate-spin h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Saving consultation...
-          </div>
-        )}
-
-        {isUploading && (
-          <div className="mb-6 p-4 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 rounded-xl flex items-center">
-            <svg className="animate-spin h-5 w-5 mr-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            Uploading medical reports...
-          </div>
-        )}
+        <LoadingIndicator isLoading={isLoading} isUploading={isUploading} />
 
         <form onSubmit={handleSubmit} className="bg-white dark:bg-gray-800 overflow-hidden">
-          {/* Tab Navigation */}
-          <div className="border-b border-gray-200 dark:border-gray-700">
-            <div className="flex px-4 sm:px-6 py-2 overflow-x-auto">
-              <button
-                type="button"
-                className={`py-3 px-4 sm:px-6 font-medium text-sm rounded-lg transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'basic' 
-                    ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' 
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-                onClick={() => setActiveTab('basic')}
-              >
-                Basic Info
-              </button>
-              <button
-                type="button"
-                className={`py-3 px-4 sm:px-6 font-medium text-sm rounded-lg transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'clinical' 
-                    ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' 
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-                onClick={() => setActiveTab('clinical')}
-              >
-                Clinical Notes
-              </button>
-              <button
-                type="button"
-                className={`py-3 px-4 sm:px-6 font-medium text-sm rounded-lg transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'meds' 
-                    ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' 
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-                onClick={() => setActiveTab('meds')}
-              >
-                Medications
-              </button>
-              <button
-                type="button"
-                className={`py-3 px-4 sm:px-6 font-medium text-sm rounded-lg transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'tests' 
-                    ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' 
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-                onClick={() => setActiveTab('tests')}
-              >
-                Tests
-              </button>
-              <button
-                type="button"
-                className={`py-3 px-4 sm:px-6 font-medium text-sm rounded-lg transition-all duration-200 whitespace-nowrap ${
-                  activeTab === 'reports' 
-                    ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/30' 
-                    : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
-                }`}
-                onClick={() => setActiveTab('reports')}
-              >
-                Medical Reports
-              </button>
-            </div>
-          </div>
+          <TabNavigation activeTab={activeTab} setActiveTab={setActiveTab} />
 
           {/* Patient and Doctor Section */}
           {activeTab === 'basic' && (
-            <div className="pb-10">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300 flex items-center">
-                  <FiUser className="mr-2" />
-                  Patient and Doctor Information
-                </h3>
+            <>
+              <PatientDoctorInfo
+                patientName={patientName}
+                doctorName={doctorName}
+                consultationDate={formData.consultationDate}
+                status={formData.status}
+                setStatus={(status) => setFormData(prev => ({ ...prev, status: status as ConsultationForm['status'] }))}
+                setDateToNow={setDateToNow}
+                errors={errors}
+              />
+              <div className="p-6 pt-0">
+                <DiagnosisInput 
+                  diagnosis={formData.diagnosis}
+                  setDiagnosis={(diagnosis) => setFormData(prev => ({ ...prev, diagnosis }))}
+                  errors={errors}
+                  setErrors={setErrors}
+                />
               </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Patient
-                    </label>
-                    <div className="p-4 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-xl">
-                      {patientName}
-                    </div>
-                    {errors.patient && (
-                      <p className="text-red-500 text-xs mt-2">{errors.patient}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Doctor
-                    </label>
-                    <div className="p-4 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-xl">
-                      {doctorName}
-                    </div>
-                    {errors.doctor && (
-                      <p className="text-red-500 text-xs mt-2">{errors.doctor}</p>
-                    )}
-                  </div>
-                </div>
-                
-                {/* Consultation Details */}
-                <div className="mt-8">
-                  <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 mb-4 flex items-center">
-                    <FiCalendar className="mr-2" />
-                    Consultation Details
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Consultation Date
-                      </label>
-                      <div className="flex items-center space-x-4">
-                        <div className="flex-1 p-4 bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-xl">
-                          {formData.consultationDate
-                            ? new Intl.DateTimeFormat('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: '2-digit',
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                timeZone: 'Asia/Kolkata',
-                              }).format(new Date(formData.consultationDate))
-                            : 'Not set'}
-                        </div>
-                        <button
-                          type="button"
-                          onClick={setDateToNow}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 text-sm transition-all duration-200"
-                        >
-                          Set to Now
-                        </button>
-                      </div>
-                      {errors.consultationDate && (
-                        <p className="text-red-500 text-xs mt-2">{errors.consultationDate}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Status
-                      </label>
-                      <select
-                        value={formData.status}
-                        onChange={e => setFormData(prev => ({ ...prev, status: e.target.value as ConsultationForm['status'] }))}
-                        className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="SCHEDULED">Scheduled</option>
-                        <option value="IN_PROGRESS">In Progress</option>
-                        <option value="COMPLETED">Completed</option>
-                        <option value="CANCELLED">Cancelled</option>
-                      </select>
-                      {errors.status && (
-                        <p className="text-red-500 text-xs mt-2">{errors.status}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Diagnosis Section */}
-                <div className="mt-8">
-                  <div className="flex justify-between items-center mb-4">
-                    <h4 className="text-md font-medium text-gray-900 dark:text-gray-100 flex items-center">
-                      <FiSearch className="mr-2" />
-                      Diagnosis
-                    </h4>
-                    <button
-                      type="button"
-                      onClick={addDiagnosis}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 text-sm flex items-center"
-                    >
-                      <FiPlus className="mr-1" />
-                      Add
-                    </button>
-                  </div>
-                  {formData.diagnosis.map((diag, index) => (
-                    <div key={index} className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4 relative border-b border-gray-100 dark:border-gray-700 pb-4">
-                      <div ref={el => diagnosisDropdownRefs.current[index] = el}>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          ICD-10 Code
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={diag.code}
-                            onChange={e => handleDiagnosisChange(index, 'code', e.target.value)}
-                            className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="e.g., A00 or A00.0"
-                          />
-                          {isSearchingDiagnosis[index] && (
-                            <svg className="absolute right-4 top-4 h-6 w-6 animate-spin text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          )}
-                        </div>
-                        {diagnosisSuggestions[index]?.length > 0 && (
-                          <ul className="absolute z-20 w-full max-w-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl mt-2 max-h-60 overflow-auto shadow-lg"
-                              style={{ 
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                zIndex: 1000,
-                                maxHeight: '200px',
-                                overflowY: 'auto'
-                              }}>
-                            {diagnosisSuggestions[index].map((suggestion, i) => (
-                              <li
-                                key={i}
-                                onClick={() => selectDiagnosis(index, suggestion)}
-                                className="p-4 hover:bg-blue-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100 first:rounded-t-xl last:rounded-b-xl"
-                              >
-                                {suggestion.code} - {suggestion.description || suggestion.name}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        {errors[`diagnosis[${index}].code`] && (
-                          <p className="text-red-500 text-xs mt-2">{errors[`diagnosis[${index}].code`]}</p>
-                        )}
-                      </div>
-                      <div className="sm:col-span-2" ref={el => diagnosisDropdownRefs.current[index] = el}>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Description
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={diag.description}
-                            onChange={e => handleDiagnosisChange(index, 'description', e.target.value)}
-                            className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="e.g., Cholera"
-                          />
-                          {isSearchingDiagnosis[index] && (
-                            <svg className="absolute right-4 top-4 h-6 w-6 animate-spin text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          )}
-                        </div>
-                        {diagnosisSuggestions[index]?.length > 0 && (
-                          <ul className="absolute z-20 w-full max-w-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl mt-2 max-h-60 overflow-auto shadow-lg"
-                              style={{ 
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                zIndex: 1000,
-                                maxHeight: '200px',
-                                overflowY: 'auto'
-                              }}>
-                            {diagnosisSuggestions[index].map((suggestion, i) => (
-                              <li
-                                key={i}
-                                onClick={() => selectDiagnosis(index, suggestion)}
-                                className="p-4 hover:bg-blue-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100 first:rounded-t-xl last:rounded-b-xl"
-                              >
-                                {suggestion.code} - {suggestion.description || suggestion.name}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        {errors[`diagnosis[${index}].description`] && (
-                          <p className="text-red-500 text-xs mt-2">{errors[`diagnosis[${index}].description`]}</p>
-                        )}
-                      </div>
-                      {formData.diagnosis.length > 1 && (
-                        <div className="flex items-center">
-                          <button
-                            type="button"
-                            onClick={() => removeDiagnosis(index)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <FiTrash2 className="h-5 w-5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            </>
           )}
 
           {/* Clinical Notes Section */}
           {activeTab === 'clinical' && (
-            <div className="overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300 flex items-center">
-                  <FiUser className="mr-2" />
-                  Clinical Notes
-                </h3>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Subjective Notes
-                    </label>
-                    <textarea
-                      value={formData.clinicalNotes.subjective}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          clinicalNotes: { ...prev.clinicalNotes, subjective: e.target.value },
-                        }))
-                      }
-                      className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={6}
-                      placeholder="Patient reports symptoms (e.g., fever, diarrhea)"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Objective Notes
-                    </label>
-                    <textarea
-                      value={formData.clinicalNotes.objective}
-                      onChange={e =>
-                        setFormData(prev => ({
-                          ...prev,
-                          clinicalNotes: { ...prev.clinicalNotes, objective: e.target.value },
-                        }))
-                      }
-                      className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      rows={6}
-                      placeholder="Clinical observations (e.g., BP 120/80, HR 78 bpm)"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ClinicalNotes
+              subjective={formData.clinicalNotes.subjective}
+              setSubjective={(value) => setFormData(prev => ({
+                ...prev,
+                clinicalNotes: { ...prev.clinicalNotes, subjective: value },
+              }))}
+              objective={formData.clinicalNotes.objective}
+              setObjective={(value) => setFormData(prev => ({
+                ...prev,
+                clinicalNotes: { ...prev.clinicalNotes, objective: value },
+              }))}
+            />
           )}
 
           {/* Medications Section */}
           {activeTab === 'meds' && (
-            <div className="">
-              <div className="px-6 py-4 border-b flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300 flex items-center">
-                  <FiUser className="mr-2" />
-                  Medications
-                </h3>
-                <button
-                  type="button"
-                  onClick={addMedication}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 text-sm flex items-center"
-                >
-                  <FiPlus className="mr-1" />
-                  Add Medication
-                </button>
-              </div>
-              <div className="p-6">
-                {formData.medications.map((med, index) => (
-                  <div key={index} className=" rounded-l p-2 mb-6 ">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="relative" ref={el => drugDropdownRefs.current[index] = el}>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Drug Name
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={med.drug}
-                            onChange={e => handleDrugChange(index, e.target.value)}
-                            className={`w-full p-4 border rounded-xl focus:outline-none focus:ring-2 ${
-                              selectedDrugs[index] 
-                                ? 'border-green-500 bg-green-50 dark:bg-green-900/20 dark:border-green-700 focus:ring-green-500' 
-                                : 'border-gray-300 bg-white dark:bg-gray-800 dark:border-gray-600 focus:ring-blue-500'
-                            }`}
-                            placeholder="Start typing to search drug..."
-                          />
-                          {isSearchingDrugs[index] && (
-                            <svg className="absolute right-4 top-4 h-6 w-6 animate-spin text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          )}
-                          {selectedDrugs[index] && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setSelectedDrugs(prev => ({ ...prev, [index]: null }));
-                                handleMedicationChange(index, 'drug', '');
-                                handleDosageChange(index, '');
-                                handleFrequencyChange(index, '');
-                              }}
-                              className="absolute right-4 top-4 text-gray-500 hover:text-red-500"
-                              title="Clear selection"
-                            >
-                              <FiX className="h-5 w-5" />
-                            </button>
-                          )}
-                        </div>
-                        {drugSuggestions[index]?.length > 0 && (
-                          <ul className="absolute z-20 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl mt-2 max-h-60 overflow-auto shadow-lg" 
-                              style={{ 
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                zIndex: 1000,
-                                maxHeight: '200px',
-                                overflowY: 'auto'
-                              }}>
-                            {drugSuggestions[index].map((drug, i) => (
-                              <li
-                                key={i}
-                                onClick={() => selectDrug(index, drug)}
-                                className="p-4 hover:bg-blue-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100 first:rounded-t-xl last:rounded-b-xl"
-                              >
-                                <div className="font-medium">{drug.name}</div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                  Dosage: {drug.dosageForms.join(', ')} | Frequency: {drug.frequencyOptions.join(', ')}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        {errors[`medications[${index}].drug`] && (
-                          <p className="text-red-500 text-xs mt-2">{errors[`medications[${index}].drug`]}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Dosage
-                        </label>
-                        {selectedDrugs[index] ? (
-                          <select
-                            value={med.dosage}
-                            onChange={e => handleDosageChange(index, e.target.value)}
-                            className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            <option value="">Select dosage</option>
-                            {selectedDrugs[index]?.dosageForms.map((dosage, i) => (
-                              <option key={i} value={dosage}>
-                                {dosage}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            value={med.dosage}
-                            onChange={e => handleDosageChange(index, e.target.value)}
-                            className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="e.g., 500 mg"
-                          />
-                        )}
-                        {errors[`medications[${index}].dosage`] && (
-                          <p className="text-red-500 text-xs mt-2">{errors[`medications[${index}].dosage`]}</p>
-                        )}
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Frequency
-                        </label>
-                        {selectedDrugs[index] ? (
-                          <select
-                            value={med.frequency}
-                            onChange={e => handleFrequencyChange(index, e.target.value)}
-                            className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            <option value="">Select frequency</option>
-                            {selectedDrugs[index]?.frequencyOptions.map((freq, i) => (
-                              <option key={i} value={freq}>
-                                {freq}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type="text"
-                            value={med.frequency}
-                            onChange={e => handleFrequencyChange(index, e.target.value)}
-                            className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="e.g., Twice daily"
-                          />
-                        )}
-                        {errors[`medications[${index}].frequency`] && (
-                          <p className="text-red-500 text-xs mt-2">{errors[`medications[${index}].frequency`]}</p>
-                        )}
-                      </div>
-                    </div>
-                    {formData.medications.length > 1 && (
-                      <div className="flex justify-end mt-4">
-                        <button
-                          type="button"
-                          onClick={() => removeMedication(index)}
-                          className="text-red-500 hover:text-red-700 flex items-center text-sm bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 px-4 py-2 rounded-lg"
-                        >
-                          <FiTrash2 className="h-4 w-4 mr-1" />
-                          Remove
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
+            <MedicationInput
+              medications={formData.medications}
+              setMedications={(medications) => setFormData(prev => ({ ...prev, medications }))}
+              errors={errors}
+              setErrors={setErrors}
+            />
           )}
 
           {/* Recommended Tests Section */}
           {activeTab === 'tests' && (
-            <div className="">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300 flex items-center">
-                  <FiUser className="mr-2" />
-                  Recommended Tests
-                </h3>
-                <button
-                  type="button"
-                  onClick={addTest}
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 dark:bg-blue-800 dark:hover:bg-blue-900 text-sm flex items-center"
-                >
-                  <FiPlus className="mr-1" />
-                  Add Test
-                </button>
-              </div>
-              <div className="p-6">
-                {formData.recommendedTests.map((test, index) => (
-                  <div key={index} className="mb-4 relative">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex-1" ref={el => testDropdownRefs.current[index] = el}>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                          Test Name
-                        </label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            value={test}
-                            onChange={e => handleTestChange(index, e.target.value)}
-                            className="w-full p-4 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="e.g., Blood culture"
-                          />
-                          {isSearchingTests[index] && (
-                            <svg className="absolute right-4 top-4 h-6 w-6 animate-spin text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                          )}
-                        </div>
-                        {testSuggestions[index]?.length > 0 && (
-                          <ul className="absolute z-20 w-full max-w-md bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl mt-2 max-h-60 overflow-auto shadow-lg"
-                              style={{ 
-                                position: 'absolute',
-                                top: '100%',
-                                left: 0,
-                                zIndex: 1000,
-                                maxHeight: '200px',
-                                overflowY: 'auto'
-                              }}>
-                            {testSuggestions[index].map((suggestion, i) => (
-                              <li
-                                key={i}
-                                onClick={() => selectTest(index, suggestion)}
-                                className="p-4 hover:bg-blue-100 dark:hover:bg-gray-700 cursor-pointer text-sm text-gray-900 dark:text-gray-100 first:rounded-t-xl last:rounded-b-xl"
-                              >
-                                {suggestion.name}
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                        {errors[`recommendedTests[${index}]`] && (
-                          <p className="text-red-500 text-xs mt-2">{errors[`recommendedTests[${index}]`]}</p>
-                        )}
-                      </div>
-                      {formData.recommendedTests.length > 1 && (
-                        <div className="flex items-center pt-6">
-                          <button
-                            type="button"
-                            onClick={() => removeTest(index)}
-                            className="text-red-500 hover:text-red-700"
-                          >
-                            <FiTrash2 className="h-5 w-5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <TestInput
+              tests={formData.recommendedTests}
+              setTests={(tests) => setFormData(prev => ({ ...prev, recommendedTests: tests }))}
+              errors={errors}
+              setErrors={setErrors}
+            />
           )}
 
           {/* Medical Reports Section */}
           {activeTab === 'reports' && (
-            <div className="">
-              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-blue-600 dark:text-blue-300 flex items-center">
-                  <FiFile className="mr-2" />
-                  Medical Reports
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  Upload medical reports related to this consultation (PDF, images, Word documents)
-                </p>
-              </div>
-              <div className="p-6">
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Upload Medical Reports
-                  </label>
-                  <div className="flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-xl cursor-pointer bg-gray-50 dark:hover:bg-gray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <FiUpload className="w-10 h-10 mb-3 text-gray-400" />
-                        <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                          <span className="font-semibold">Click to upload</span> or drag and drop
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          PDF, PNG, JPG, JPEG, DOC, DOCX (MAX. 5MB)
-                        </p>
-                      </div>
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        multiple 
-                        accept=".pdf,.png,.jpg,.jpeg,.doc,.docx"
-                        onChange={handleMedicalReportChange}
-                      />
-                    </label>
-                  </div>
-                </div>
-
-                {medicalReports.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="text-md font-medium text-gray-900 dark:text-white mb-4">
-                      Uploaded Reports
-                    </h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {medicalReports.map((report, index) => (
-                        <div key={index} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-white dark:bg-gray-800">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center">
-                              <FiFile className="text-blue-500 dark:text-blue-400 mr-2" />
-                              <div>
-                                <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[150px]">
-                                  {report.name}
-                                </p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">
-                                  {(report.file.size / 1024 / 1024).toFixed(2)} MB
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => removeMedicalReport(index)}
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              <FiX className="h-5 w-5" />
-                            </button>
-                          </div>
-                          {report.previewUrl && (
-                            <div className="mt-3">
-                              {report.file.type.startsWith('image/') ? (
-                                <img 
-                                  src={report.previewUrl} 
-                                  alt={report.name} 
-                                  className="w-full h-32 object-cover rounded-lg"
-                                />
-                              ) : (
-                                <div className="flex items-center justify-center h-32 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                                  <FiFile className="text-gray-400 dark:text-gray-500 text-2xl" />
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <MedicalReportUpload
+              medicalReports={medicalReports}
+              setMedicalReports={setMedicalReports}
+              handleMedicalReportChange={handleMedicalReportChange}
+              removeMedicalReport={removeMedicalReport}
+            />
           )}
 
-          {/* Submit Button */}
-          <div className="flex justify-end p-6 border-t border-gray-200 dark:border-gray-700">
-            <button
-              type="submit"
-              disabled={isLoading || isUploading}
-              className={`flex items-center px-6 py-3 rounded-lg text-lg font-medium transition-all ${
-                isLoading || isUploading
-                  ? 'bg-blue-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700'
-              } text-white`}
-            >
-              {isLoading || isUploading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  {isUploading ? 'Uploading...' : 'Saving...'}
-                </>
-              ) : (
-                <>
-                  <FiCheck className="mr-2" />
-                  Save Consultation
-                </>
-              )}
-            </button>
-          </div>
+          <FormActions
+            isLoading={isLoading}
+            isUploading={isUploading}
+            patientId={formData.patient}
+            handleSubmit={handleSubmit}
+          />
         </form>
       </div>
     </div>

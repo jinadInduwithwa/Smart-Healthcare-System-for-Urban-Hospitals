@@ -839,14 +839,15 @@ export async function updateMe(payload: any) {
 export async function uploadAvatar(file: File) {
   const fd = new FormData();
   fd.append("avatar", file);
-  const r = await fetch(`${BASE_URL}/users/me/avatar`, {
-    method: "PUT",
+  const r = await fetch(`${BASE_URL}/auth/profile/avatar`, {
+    method: "POST",
     headers: { ...authHeaders() } as HeadersInit, // don't set Content-Type for FormData
     body: fd,
   });
   if (!r.ok) throw new Error("Failed to upload avatar");
   const j = await r.json();
-  return j.data ?? j; // { avatarUrl }
+  // The user data is nested under data.user in the response
+  return j.data?.user ?? j.data ?? j; // { avatarUrl }
 }
 
 export async function changePassword(payload: { oldPassword: string; newPassword: string }) {
@@ -897,3 +898,328 @@ export async function updateAppointmentStatus(appointmentId: string, status: 'PE
   }
   return r.json();
 }
+
+
+//------------- report ------------------
+
+
+interface Doctor {
+  _id?: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  phone?: string;
+  isVerified?: boolean;
+  specialization?: string;
+  licenseNumber?: string;
+  adminLevel?: string;
+}
+
+//------------------------ Doctor APIs ----------------------
+
+export const addDoctor = async (doctorData: Doctor, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/doctors`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(doctorData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to add doctor");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Add doctor error:", error);
+    throw error;
+  }
+};
+
+export const updateDoctor = async (id: string, doctorData: Partial<Doctor>, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/doctors/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(doctorData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update doctor");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Update doctor error:", error);
+    throw error;
+  }
+};
+
+export const deleteDoctor = async (id: string, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/doctors/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete doctor");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Delete doctor error:", error);
+    throw error;
+  }
+};
+
+export const getDoctors = async (token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/doctors`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text(); // Use text() for potential non-JSON errors
+      throw new Error(errorData || "Failed to fetch doctors");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Get doctors error:", error);
+    throw error;
+  }
+};
+
+// Add this function to your api.ts file in the reports section
+
+export const getDoctorAvailabilityReport = async (token: string): Promise<any> => {
+  try {
+    const url = `${BASE_URL}/reports/doctor-availability`;
+    console.log("Fetching doctor availability report from:", url);
+    
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      },
+    });
+
+    console.log("Response status:", response.status);
+
+    // Check if response is JSON
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const textResponse = await response.text();
+      console.error("Non-JSON response received:", textResponse.substring(0, 200));
+      throw new Error(`Server returned ${contentType || 'unknown content type'}. Expected JSON.`);
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to fetch doctor availability report (${response.status})`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Get doctor availability report error:", error);
+    throw error;
+  }
+};
+
+
+
+//------------------------ Patient APIs ----------------------
+
+interface Patient {
+  _id?: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+  address: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  phone: string;
+  isVerified: boolean;
+  healthCardId: string;
+  dateOfBirth: string;
+  gender: string;
+}
+
+export const addPatient = async (patientData: Patient, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/patients`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(patientData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to add patient");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Add patient error:", error);
+    throw error;
+  }
+};
+
+export const updatePatient = async (id: string, patientData: Partial<Patient>, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/patients/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(patientData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to update patient");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Update patient error:", error);
+    throw error;
+  }
+};
+
+export const deletePatient = async (id: string, token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/patients/${id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to delete patient");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Delete patient error:", error);
+    throw error;
+  }
+};
+
+export const getPatients = async (token: string): Promise<any> => {
+  try {
+    const response = await fetch(`${BASE_URL}/patients`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text(); // Use text() for potential non-JSON errors
+      throw new Error(errorData || "Failed to fetch patients");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Get patients error:", error);
+    throw error;
+  }
+};
+
+export const getPatientCheckInReport = async (startDate: string, endDate: string, token: string): Promise<any> => {
+  try {
+    const url = `${BASE_URL}/reports/patient-check-ins?startDate=${startDate}&endDate=${endDate}`;
+    console.log("Fetching patient check-in report from:", url);
+    
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0"
+      },
+    });
+
+    console.log("Response status:", response.status);
+    console.log("Response headers:", response.headers);
+
+    // Handle 304 Not Modified - fetch again without cache
+    if (response.status === 304) {
+      console.warn("Received 304 Not Modified, retrying without cache...");
+      const retryResponse = await fetch(url + `&_t=${Date.now()}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Cache-Control": "no-cache",
+        },
+      });
+      return await retryResponse.json();
+    }
+
+    // Check if response is JSON
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const textResponse = await response.text();
+      console.error("Non-JSON response received:", textResponse.substring(0, 200));
+      throw new Error(`Server returned ${contentType || 'unknown content type'}. Expected JSON. Make sure backend server is running on port 3002.`);
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Failed to fetch patient check-in report (${response.status})`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Get patient check-in report error:", error);
+    throw error;
+  }
+};

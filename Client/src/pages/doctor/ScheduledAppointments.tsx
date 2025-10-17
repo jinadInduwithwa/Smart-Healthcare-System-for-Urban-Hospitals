@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '../../context/ToastContext';
 import { getDoctorAppointments, updateAppointmentStatus } from '../../utils/api';
+import AppointmentList from '../../components/Doctor/AppointmentList';
 
 interface Appointment {
   _id: string;
@@ -70,80 +71,11 @@ const ScheduledAppointments = () => {
   return (
     <div className="p-4 sm:p-6 min-h-screen">
       <h1 className="text-2xl font-bold mb-6">Scheduled Appointments</h1>
-      
-      {appointments.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-500">No scheduled appointments found.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {appointments.map((appointment) => (
-            <div key={appointment._id} className="bg-white rounded-lg shadow p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-semibold text-lg">
-                  {appointment.patient.firstName} {appointment.patient.lastName}
-                </h3>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                  appointment.status === 'CONFIRMED' 
-                    ? 'bg-green-100 text-green-800' 
-                    : appointment.status === 'PENDING' 
-                      ? 'bg-yellow-100 text-yellow-800' 
-                      : 'bg-red-100 text-red-800'
-                }`}>
-                  {appointment.status}
-                </span>
-              </div>
-              
-              <p className="text-gray-600 text-sm mb-1">{appointment.patient.email}</p>
-              
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <p className="text-sm">
-                  <span className="font-medium">Date:</span> {new Date(appointment.availability.date).toLocaleDateString()}
-                </p>
-                <p className="text-sm">
-                  <span className="font-medium">Time:</span> {appointment.availability.startTime} - {appointment.availability.endTime}
-                </p>
-                <p className="text-sm">
-                  <span className="font-medium">Booked on:</span> {new Date(appointment.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              
-              {/* Status update buttons */}
-              <div className="mt-4 flex flex-wrap gap-2">
-                {appointment.status !== 'CONFIRMED' && (
-                  <button
-                    onClick={() => handleStatusUpdate(appointment._id, 'CONFIRMED')}
-                    disabled={updating === appointment._id}
-                    className="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600 disabled:opacity-50"
-                  >
-                    {updating === appointment._id ? 'Confirming...' : 'Confirm'}
-                  </button>
-                )}
-                
-                {appointment.status !== 'CANCELLED' && (
-                  <button
-                    onClick={() => handleStatusUpdate(appointment._id, 'CANCELLED')}
-                    disabled={updating === appointment._id}
-                    className="px-3 py-1 bg-red-500 text-white text-sm rounded hover:bg-red-600 disabled:opacity-50"
-                  >
-                    {updating === appointment._id ? 'Cancelling...' : 'Cancel'}
-                  </button>
-                )}
-                
-                {appointment.status === 'CANCELLED' && (
-                  <button
-                    onClick={() => handleStatusUpdate(appointment._id, 'PENDING')}
-                    disabled={updating === appointment._id}
-                    className="px-3 py-1 bg-yellow-500 text-white text-sm rounded hover:bg-yellow-600 disabled:opacity-50"
-                  >
-                    {updating === appointment._id ? 'Reactivating...' : 'Reactivate'}
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+      <AppointmentList 
+        appointments={appointments} 
+        updating={updating} 
+        handleStatusUpdate={handleStatusUpdate} 
+      />
     </div>
   );
 };
