@@ -15,7 +15,12 @@
     "test": "jest --coverage",
     "test:frontend": "cd Client && pnpm test",
     "test:all": "pnpm test && pnpm run test:frontend",
-    "seed:slots": "node scripts/seed-slots.mjs"
+    "test:working": "jest --config __tests__/jest.config.cjs __tests__/controllers/appointments.controller.working.test.js __tests__/controllers/consultation.controller.working.test.js __tests__/controllers/payment.controller.working.test.js __tests__/controllers/report.controller.working.test.js",
+    "test:working:all": "node run-working-tests.cjs",
+    "test:working:appointments": "jest --config __tests__/jest.config.cjs __tests__/controllers/appointments.controller.working.test.js",
+    "test:working:consultation": "jest --config __tests__/jest.config.cjs __tests__/controllers/consultation.controller.working.test.js",
+    "test:working:payment": "jest --config __tests__/jest.config.cjs __tests__/controllers/payment.controller.working.test.js",
+    "test:working:report": "jest --config __tests__/jest.config.cjs __tests__/controllers/report.controller.working.test.js"
   },
   "keywords": [
     "healthcare",
