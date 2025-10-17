@@ -622,11 +622,11 @@ export const deleteConsultation = async (id: string) => {
       throw new Error("No authentication token found");
     }
 
-    const response = await fetch(`${BASE_URL}/consultations/${id}`, {
+    const response = await fetch(`${BASE_URL}/consult/${id}`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        Authorization: `Bearer ${token}`,
       },
     });
 

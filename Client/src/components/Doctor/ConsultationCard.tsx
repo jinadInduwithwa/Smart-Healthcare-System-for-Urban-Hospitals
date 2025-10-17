@@ -46,6 +46,7 @@ interface ConsultationCardProps {
   formatDateTime: (dateStr: string) => string;
   getFileIcon: (fileName: string) => string;
   handleDownloadReport: (url: string, fileName: string) => void;
+  onDelete?: (id: string) => void; // Add onDelete prop
 }
 
 const ConsultationCard: React.FC<ConsultationCardProps> = ({
@@ -56,7 +57,8 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
   formatDate,
   formatDateTime,
   getFileIcon,
-  handleDownloadReport
+  handleDownloadReport,
+  onDelete // Destructure onDelete prop
 }) => {
   return (
     <div 
@@ -231,7 +233,18 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
             </div>
           </div>
           
-          <div className="mt-6 flex justify-end">
+          <div className="mt-6 flex justify-end space-x-3">
+            {onDelete && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(consultation._id);
+                }}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            )}
             <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
               View Full Details
             </button>

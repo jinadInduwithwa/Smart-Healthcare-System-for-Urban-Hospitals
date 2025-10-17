@@ -48,6 +48,7 @@ interface ConsultationListProps {
   handleDownloadReport: (url: string, fileName: string) => void;
   isLoading: boolean;
   error: string | null;
+  onDelete?: (id: string) => void; // Add onDelete prop
 }
 
 const ConsultationList: React.FC<ConsultationListProps> = ({
@@ -60,7 +61,8 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
   getFileIcon,
   handleDownloadReport,
   isLoading,
-  error
+  error,
+  onDelete // Destructure onDelete prop
 }) => {
   if (consultations.length === 0 && !isLoading && !error) {
     return (
@@ -94,6 +96,7 @@ const ConsultationList: React.FC<ConsultationListProps> = ({
             formatDateTime={formatDateTime}
             getFileIcon={getFileIcon}
             handleDownloadReport={handleDownloadReport}
+            onDelete={onDelete} // Pass onDelete prop
           />
         );
       })}
