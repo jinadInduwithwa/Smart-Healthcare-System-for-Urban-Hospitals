@@ -179,11 +179,11 @@ class PaymentService {
       const payment = await Payment.findOne({ stripeSessionId: sessionId })
         .populate({
           path: "patient",
-          populate: { path: "user" },
+          populate: { path: "userId" },
         })
         .populate({
           path: "doctor",
-          populate: { path: "user" },
+          populate: { path: "userId" },
         })
         .populate("appointment");
 
@@ -230,7 +230,7 @@ class PaymentService {
    */
   async getOutstandingPayments(userId) {
     try {
-      const patient = await Patient.findOne({ user: userId });
+      const patient = await Patient.findOne({ userId: userId });
       if (!patient) {
         throw new AppError("Patient profile not found", 404);
       }
@@ -241,15 +241,15 @@ class PaymentService {
       })
         .populate({
           path: "appointment",
-          populate: { path: "availableSlot" },
+          populate: { path: "availability" },
         })
         .populate({
           path: "doctor",
-          populate: { path: "user" },
+          populate: { path: "userId" },
         })
         .populate({
           path: "patient",
-          populate: { path: "user" },
+          populate: { path: "userId" },
         })
         .sort({ dueDate: 1 });
 
@@ -265,7 +265,7 @@ class PaymentService {
    */
   async getPaymentHistory(userId, filters = {}) {
     try {
-      const patient = await Patient.findOne({ user: userId });
+      const patient = await Patient.findOne({ userId: userId });
       if (!patient) {
         throw new AppError("Patient profile not found", 404);
       }
@@ -307,11 +307,11 @@ class PaymentService {
         Payment.find(query)
           .populate({
             path: "appointment",
-            populate: { path: "availableSlot" },
+            populate: { path: "availability" },
           })
           .populate({
             path: "doctor",
-            populate: { path: "user" },
+            populate: { path: "userId" },
           })
           .sort({ paidAt: -1, createdAt: -1 })
           .skip(skip)
@@ -339,7 +339,7 @@ class PaymentService {
    */
   async getPaymentSummary(userId) {
     try {
-      const patient = await Patient.findOne({ user: userId });
+      const patient = await Patient.findOne({ userId: userId });
       if (!patient) {
         throw new AppError("Patient profile not found", 404);
       }
@@ -361,7 +361,7 @@ class PaymentService {
    */
   async getPaymentById(paymentId, userId) {
     try {
-      const patient = await Patient.findOne({ user: userId });
+      const patient = await Patient.findOne({ userId: userId });
       if (!patient) {
         throw new AppError("Patient profile not found", 404);
       }
@@ -372,15 +372,15 @@ class PaymentService {
       })
         .populate({
           path: "appointment",
-          populate: { path: "availableSlot" },
+          populate: { path: "availability" },
         })
         .populate({
           path: "doctor",
-          populate: { path: "user" },
+          populate: { path: "userId" },
         })
         .populate({
           path: "patient",
-          populate: { path: "user" },
+          populate: { path: "userId" },
         });
 
       if (!payment) {
@@ -399,7 +399,7 @@ class PaymentService {
    */
   async processRefund(paymentId, userId, refundAmount) {
     try {
-      const patient = await Patient.findOne({ user: userId });
+      const patient = await Patient.findOne({ userId: userId });
       if (!patient) {
         throw new AppError("Patient profile not found", 404);
       }
@@ -473,14 +473,14 @@ class PaymentService {
         status: payment.status,
         paidAt: payment.paidAt,
         paymentMethod: payment.paymentMethod,
-        patientName: `${payment.patient.user.firstName} ${payment.patient.user.lastName}`,
-        patientId: payment.patient.user._id,
-        doctorName: `${payment.doctor.user.firstName} ${payment.doctor.user.lastName}`,
+        patientName: `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}`,
+        patientId: payment.patient.userId._id,
+        doctorName: `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}`,
         specialization: payment.doctor.specialization,
         appointmentDate: payment.appointment.date,
-        appointmentTime: payment.appointment.availableSlot?.time || "N/A",
+        appointmentTime: payment.appointment.availability?.time || "N/A",
         hospitalBranch:
-          payment.appointment.availableSlot?.location || "Main Hospital",
+          payment.appointment.availability?.location || "Main Hospital",
       };
 
       return receipt;

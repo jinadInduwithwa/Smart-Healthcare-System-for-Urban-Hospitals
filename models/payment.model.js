@@ -234,7 +234,7 @@ paymentSchema.statics.getOutstandingBalance = async function (patientId) {
   const result = await this.aggregate([
     {
       $match: {
-        patient: mongoose.Types.ObjectId(patientId),
+        patient: new mongoose.Types.ObjectId(patientId),
         status: { $in: ["PENDING", "OVERDUE"] },
       },
     },
@@ -257,7 +257,7 @@ paymentSchema.statics.getPaymentSummary = async function (patientId) {
   const completed = await this.aggregate([
     {
       $match: {
-        patient: mongoose.Types.ObjectId(patientId),
+        patient: new mongoose.Types.ObjectId(patientId),
         status: { $in: ["PAID", "COMPLETED"] },
       },
     },

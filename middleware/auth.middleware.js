@@ -7,7 +7,7 @@ export const auth = async (req, res, next) => {
   try {
     // Get token from header or cookie
     const token =
-      req.header("Authorization")?.replace("Bearer ", "") || req.cookies.token;
+      req.header("Authorization")?.replace("Bearer ", "") || req.cookies?.token;
 
     if (!token) {
       return res
@@ -26,7 +26,7 @@ export const auth = async (req, res, next) => {
 
     // Attach user to request
     req.user = user;
-    
+
     // If user is a doctor, also populate doctor information
     if (user.role === "DOCTOR") {
       const doctor = await Doctor.findOne({ userId: user._id });
@@ -34,7 +34,7 @@ export const auth = async (req, res, next) => {
         req.user.doctor = doctor;
       }
     }
-    
+
     next();
   } catch (error) {
     logger.error("Authentication error:", error);
