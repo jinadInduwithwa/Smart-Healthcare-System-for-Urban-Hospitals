@@ -1,8 +1,9 @@
 const BASE_URL = "http://localhost:3002/api";
 
+
 //------------------------ Auth APIs ----------------------
 
-export interface FormData {
+interface FormData {
   email: string;
   password: string;
   firstName: string;
@@ -69,6 +70,7 @@ export const register = async (userData: FormData) => {
   }
 };
 
+
 export const verifyEmail = async (pin: string) => {
   try {
     const response = await fetch(`${BASE_URL}/auth/verify-email`, {
@@ -87,20 +89,17 @@ export const verifyEmail = async (pin: string) => {
     console.log("Verify Email Response Text:", responseText);
 
     if (!response.ok) {
-      throw new Error(
-        `Verification failed with status ${response.status}: ${responseText}`
-      );
+      throw new Error(`Verification failed with status ${response.status}: ${responseText}`);
     }
 
     const data = await response.json(); // Read JSON
     return data; // Returns { status: 'success', message: 'Email verified successfully' }
   } catch (error) {
     console.error("Verification error:", error);
-    throw error instanceof Error
-      ? error
-      : new Error("Email verification failed");
+    throw error instanceof Error ? error : new Error("Email verification failed");
   }
 };
+
 
 // get profile
 export const getProfile = async () => {
@@ -117,7 +116,9 @@ export const getProfile = async () => {
       throw response;
     }
 
-    return await response.json();
+    const j = await response.json();
+    // The user data is nested under data.user in the response
+    return j.data?.user ?? j.data ?? j;
   } catch (error) {
     console.error("Profile fetch error:", error);
     throw error;
@@ -140,7 +141,9 @@ export const updateProfile = async (userData: Partial<FormData>) => {
       throw response;
     }
 
-    return await response.json();
+    const j = await response.json();
+    // The user data is nested under data.user in the response
+    return j.data?.user ?? j.data ?? j;
   } catch (error) {
     console.error("Profile update error:", error);
     throw error;
@@ -264,10 +267,7 @@ export const deleteUser = async (userId: string) => {
 };
 
 // get update user status (for admin)
-export const updateUserStatus = async (
-  userId: string,
-  statusData: UserStatusData
-) => {
+export const updateUserStatus = async (userId: string, statusData: UserStatusData) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -296,10 +296,7 @@ export const updateUserStatus = async (
 };
 
 // update user role (for admin)
-export const updateUserRole = async (
-  userId: string,
-  roleData: UserRoleData
-) => {
+export const updateUserRole = async (userId: string, roleData: UserRoleData) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -345,7 +342,16 @@ interface ClinicalNotes {
   objective?: string;
 }
 
+interface MedicalReport {
+  _id: string;
+  url: string;
+  publicId: string;
+  fileName: string;
+  uploadedAt: string;
+}
+
 interface ConsultationData {
+  _id?: string;
   patient: string;
   doctor: string;
   consultationDate: string;
@@ -354,6 +360,7 @@ interface ConsultationData {
   medications?: Medication[];
   clinicalNotes?: ClinicalNotes;
   recommendedTests?: string[];
+  medicalReports?: MedicalReport[];
 }
 
 interface TestName {
@@ -383,7 +390,7 @@ export const getAllPatients = async () => {
     const response = await fetch(`${BASE_URL}/consult/patients`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
+         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
@@ -422,9 +429,9 @@ export const addConsultation = async (consultationData: ConsultationData) => {
       // Create a more detailed error message that includes validation errors
       let errorMessage = errorData.message || "Failed to add consultation";
       if (errorData.errors && Array.isArray(errorData.errors)) {
-        const validationErrors = errorData.errors
-          .map((err: any) => `${err.param}: ${err.msg}`)
-          .join(", ");
+        const validationErrors = errorData.errors.map((err: any) => 
+          `${err.param}: ${err.msg}`
+        ).join(", ");
         errorMessage += `. Validation errors: ${validationErrors}`;
       }
       throw new Error(errorMessage);
@@ -438,10 +445,7 @@ export const addConsultation = async (consultationData: ConsultationData) => {
 };
 
 // Search diagnosis codes
-export const searchDiagnosisCodes = async ({
-  query,
-  maxResults = 10,
-}: SearchQuery) => {
+export const searchDiagnosisCodes = async ({ query, maxResults = 10 }: SearchQuery) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -453,9 +457,7 @@ export const searchDiagnosisCodes = async ({
     }
 
     const response = await fetch(
-      `${BASE_URL}/consult/search-diagnosis?query=${encodeURIComponent(
-        query
-      )}&maxResults=${maxResults}`,
+      `${BASE_URL}/consult/search-diagnosis?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
       {
         method: "GET",
         headers: {
@@ -478,10 +480,7 @@ export const searchDiagnosisCodes = async ({
 };
 
 // Search test names
-export const searchTestNames = async ({
-  query,
-  maxResults = 10,
-}: SearchQuery) => {
+export const searchTestNames = async ({ query, maxResults = 10 }: SearchQuery) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -493,14 +492,12 @@ export const searchTestNames = async ({
     }
 
     const response = await fetch(
-      `${BASE_URL}/consult/search-tests?query=${encodeURIComponent(
-        query
-      )}&maxResults=${maxResults}`,
+      `${BASE_URL}/consult/search-tests?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
     );
@@ -530,14 +527,12 @@ export const searchDrugs = async ({ query, maxResults = 10 }: SearchQuery) => {
     }
 
     const response = await fetch(
-      `${BASE_URL}/consult/search-drugs?query=${encodeURIComponent(
-        query
-      )}&maxResults=${maxResults}`,
+      `${BASE_URL}/consult/search-drugs?query=${encodeURIComponent(query)}&maxResults=${maxResults}`,
       {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
         },
       }
     );
@@ -583,10 +578,7 @@ export const getConsultationsByPatient = async (patientId: string) => {
 };
 
 // Update a consultation
-export const updateConsultation = async (
-  id: string,
-  consultationData: Partial<ConsultationData>
-) => {
+export const updateConsultation = async (id: string, consultationData: Partial<ConsultationData>) => {
   try {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -597,7 +589,7 @@ export const updateConsultation = async (
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       body: JSON.stringify(consultationData),
     });
@@ -607,9 +599,9 @@ export const updateConsultation = async (
       // Create a more detailed error message that includes validation errors
       let errorMessage = errorData.message || "Failed to update consultation";
       if (errorData.errors && Array.isArray(errorData.errors)) {
-        const validationErrors = errorData.errors
-          .map((err: any) => `${err.param}: ${err.msg}`)
-          .join(", ");
+        const validationErrors = errorData.errors.map((err: any) => 
+          `${err.param}: ${err.msg}`
+        ).join(", ");
         errorMessage += `. Validation errors: ${validationErrors}`;
       }
       throw new Error(errorMessage);
@@ -634,7 +626,7 @@ export const deleteConsultation = async (id: string) => {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
     });
 
@@ -650,7 +642,109 @@ export const deleteConsultation = async (id: string) => {
   }
 };
 
+// Add a medical report to a consultation
+export const addMedicalReport = async (consultationId: string, file: File) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const formData = new FormData();
+    formData.append("medicalReport", file);
+
+    const response = await fetch(`${BASE_URL}/consult/${consultationId}/reports`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to upload medical report");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Add medical report error:", error);
+    throw error;
+  }
+};
+
+// Remove a medical report from a consultation
+export const removeMedicalReport = async (consultationId: string, reportId: string) => {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No authentication token found");
+    }
+
+    const response = await fetch(`${BASE_URL}/consult/${consultationId}/reports/${reportId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to remove medical report");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Remove medical report error:", error);
+    throw error;
+  }
+};
+
+// Download a medical report using Cloudinary URL directly
+export const downloadMedicalReport = async (url: string, fileName: string) => {
+  try {
+    // For Cloudinary URLs, we need to handle them properly to avoid CORS issues
+    // First, try to fetch the file as a blob and then create a download link
+    const response = await fetch(url);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch file: ${response.status} ${response.statusText}`);
+    }
+    
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = fileName || 'medical-report';
+    
+    // Append to the body
+    document.body.appendChild(link);
+    
+    // Trigger the download
+    link.click();
+    
+    // Remove the link from the body
+    document.body.removeChild(link);
+    
+    // Clean up the object URL
+    window.URL.revokeObjectURL(downloadUrl);
+    
+    return { success: true };
+  } catch (error) {
+    console.error("Download medical report error:", error);
+    throw new Error("Failed to download medical report. Please try again.");
+  }
+};
+
 // helper to build Authorization headers from the stored token
+function authHeaders(): Record<string, string> {
+  const token = localStorage.getItem("token");
+  if (!token) return {};
+  return { Authorization: `Bearer ${token}` };
+}
 
 // ---------------- Appointment APIs ----------------
 
@@ -661,33 +755,23 @@ export async function getSpecialties() {
 }
 
 export async function getDoctorsBySpecialty(s: string) {
-  const r = await fetch(
-    `${BASE_URL}/appointments/doctors?specialty=${encodeURIComponent(s)}`
-  );
+  const r = await fetch(`${BASE_URL}/appointments/doctors?specialty=${encodeURIComponent(s)}`);
   if (!r.ok) throw new Error("Failed to load doctors");
   return r.json();
 }
 
 export async function getSlots(doctorId: string, dateISO?: string) {
   const r = await fetch(
-    `${BASE_URL}/appointments/slots?doctorId=${doctorId}${
-      dateISO ? `&date=${dateISO}` : ""
-    }`
+    `${BASE_URL}/appointments/slots?doctorId=${doctorId}${dateISO ? `&date=${dateISO}` : ""}`
   );
   if (!r.ok) throw new Error("Failed to load slots");
   return r.json();
 }
 
 export async function createAppointment(doctorId: string, slotId: string) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No authentication token found");
-
   const r = await fetch(`${BASE_URL}/appointments`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
     body: JSON.stringify({ doctorId, slotId }),
   });
   if (!r.ok) {
@@ -698,15 +782,9 @@ export async function createAppointment(doctorId: string, slotId: string) {
 }
 
 export async function payAppointment(appointmentId: string) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No authentication token found");
-
   const r = await fetch(`${BASE_URL}/appointments/pay`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
     body: JSON.stringify({ appointmentId }),
   });
   if (!r.ok) {
@@ -718,67 +796,52 @@ export async function payAppointment(appointmentId: string) {
 
 // Patient's appointments (requires Authorization)
 export async function getMyAppointments() {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No authentication token found");
-
   const r = await fetch(`${BASE_URL}/appointments/mine`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { ...authHeaders() } as HeadersInit,
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({}));
-    throw new Error(
-      err?.message ||
-        (r.status === 401 ? "Unauthorized" : "Failed to load appointments")
-    );
+    throw new Error(err?.message || (r.status === 401 ? "Unauthorized" : "Failed to load appointments"));
   }
   return r.json(); // { data: [...] }
 }
 
-// Profile management APIs
+// Optional helpers hitting /users/me if your backend supports them
 export async function getMe() {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No authentication token found");
-
+  console.log("Calling getMe API"); // Debug log
   const r = await fetch(`${BASE_URL}/auth/profile`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+  console.log("API Response status:", r.status); // Debug log
   if (!r.ok) throw new Error("Failed to load user");
   const j = await r.json();
-  return j.data ?? j;
+  console.log("API Response JSON:", j); // Debug log
+  // The user data is nested under data.user in the response
+  return j.data?.user ?? j.data ?? j;
 }
 
 export async function updateMe(payload: any) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No authentication token found");
-
   const r = await fetch(`${BASE_URL}/auth/profile`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
     body: JSON.stringify(payload),
   });
   if (!r.ok) throw new Error("Failed to update user");
   const j = await r.json();
-  return j.data ?? j;
+  // The user data is nested under data.user in the response
+  return j.data?.user ?? j.data ?? j;
 }
 
 export async function uploadAvatar(file: File) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No authentication token found");
-
   const fd = new FormData();
   fd.append("avatar", file);
   const r = await fetch(`${BASE_URL}/users/me/avatar`, {
     method: "PUT",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { ...authHeaders() } as HeadersInit, // don't set Content-Type for FormData
     body: fd,
   });
   if (!r.ok) throw new Error("Failed to upload avatar");
@@ -786,29 +849,51 @@ export async function uploadAvatar(file: File) {
   return j.data ?? j; // { avatarUrl }
 }
 
-export async function changePassword(payload: {
-  oldPassword: string;
-  newPassword: string;
-}) {
-  const token = localStorage.getItem("token");
-  if (!token) throw new Error("No authentication token found");
-
+export async function changePassword(payload: { oldPassword: string; newPassword: string }) {
   const r = await fetch(`${BASE_URL}/auth/change-password`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json", ...authHeaders() } as HeadersInit,
     body: JSON.stringify(payload),
   });
   if (!r.ok) throw new Error("Password change failed");
   return r.json();
 }
 
-// Logout helper
-export async function logout() {
-  // Clear token
-  localStorage.removeItem("token");
-  // Clear profile data
-  localStorage.removeItem("user");
+export const getPastAppointments = async () => {
+  const response = await fetch(`${BASE_URL}/appointments/mine`, {
+    headers: { ...authHeaders() } as HeadersInit,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.message || (response.status === 401 ? "Unauthorized" : "Failed to load past appointments"));
+  }
+  return response.json();
+};
+// Doctor's appointments (requires Authorization)
+export async function getDoctorAppointments() {
+  const r = await fetch(`${BASE_URL}/appointments/doctor`, {
+    headers: { ...authHeaders() } as HeadersInit,
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || (r.status === 401 ? "Unauthorized" : "Failed to load appointments"));
+  }
+  return r.json(); // { data: [...] }
+}
+
+// Update appointment status (requires Authorization)
+export async function updateAppointmentStatus(appointmentId: string, status: 'PENDING' | 'CONFIRMED' | 'CANCELLED') {
+  const r = await fetch(`${BASE_URL}/appointments/${appointmentId}/status`, {
+    method: "PATCH",
+    headers: { 
+      "Content-Type": "application/json",
+      ...authHeaders()
+    } as HeadersInit,
+    body: JSON.stringify({ status }),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({}));
+    throw new Error(err?.message || (r.status === 401 ? "Unauthorized" : "Failed to update appointment status"));
+  }
+  return r.json();
 }

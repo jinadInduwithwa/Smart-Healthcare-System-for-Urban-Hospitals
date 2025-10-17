@@ -118,4 +118,46 @@ export class AppointmentService {
       .lean();
   }
 
+  // Add this new method for fetching appointments for a doctor
+  async listAppointmentsForDoctor({ doctorId }) {
+    return Appointment.find({ doctor: doctorId })
+      .populate({ path: "patient", select: "firstName lastName email" })
+      .populate("availability")
+      .sort({ createdAt: -1 })
+      .lean();
+  }
+
+  // Add this new method for updating appointment status
+  async updateAppointmentStatus({ appointmentId, status, doctorId }) {
+    // Verify that the appointment belongs to the doctor
+    const appointment = await Appointment.findOne({ 
+      _id: appointmentId, 
+      doctor: doctorId 
+    });
+    
+    if (!appointment) {
+      throw new Error("Appointment not found or does not belong to this doctor");
+    }
+    
+    // Update the appointment status
+    await Appointment.updateOne(
+      { _id: appointmentId },
+      { $set: { status } }
+    );
+    
+    // If the appointment is being cancelled, we should also free up the slot
+    if (status === "CANCELLED") {
+      await Availability.updateOne(
+        { _id: appointment.availability },
+        { $set: { isBooked: false } }
+      );
+    }
+    
+    // Return the updated appointment
+    return Appointment.findById(appointmentId)
+      .populate({ path: "patient", select: "firstName lastName email" })
+      .populate("availability")
+      .lean();
+  }
+
 }

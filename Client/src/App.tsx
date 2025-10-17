@@ -30,18 +30,12 @@ const DoctorRoutes = () => {
       <Route path="/" element={<DoctorLayout />}>
         <Route index element={<Navigate to="overview" replace />} />
         <Route path="overview" element={<Overview />} />
-        <Route path="profile" element={<DoctorProfile />} />
-        card
-        <Route path="patient-records/all" element={<AllPatientRecords />} />
-        <Route path="patient-records/card" element={<SearchCard />} />
-        <Route
-          path="consultation/patient/:patientId"
-          element={<AllConsultations />}
-        />
-        <Route
-          path="consultation/add/:patientId"
-          element={<AddConsultation />}
-        />
+        <Route path="profile" element={<DoctorProfile />} />card
+         <Route path="appoinment/scheduled" element={<ScheduledAppointments />} /> 
+         <Route path="patient-records/all" element={<AllPatientRecords />} /> 
+         <Route path="patient-records/card" element={<SearchCard />} /> 
+         <Route path="consultation/patient/:patientId" element={<AllConsultations />} />  
+         <Route path="consultation/add/:patientId" element={<AddConsultation />} /> 
         {/* Order-related routes grouped under /orders */}
         {/* <Route path="prescription">
           <Route path="new" element={<Newprescription />} />
@@ -72,6 +66,7 @@ import AllPatientRecords from "./pages/doctor/AllPatientRecords";
 import AllConsultations from "./pages/doctor/AllConsultations";
 import AddConsultation from "./pages/doctor/AddConsultation";
 import SearchCard from "./pages/doctor/SearchCard";
+import ScheduledAppointments from "./pages/doctor/ScheduledAppointments";
 
 function App() {
   return (

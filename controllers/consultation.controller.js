@@ -1,6 +1,27 @@
 import { ConsultationService } from "../services/consultation.service.js";
 import logger from "../utils/logger.js";
 import { AppError } from "../utils/AppError.js";
+import multer from "multer";
+
+// Configure multer for file uploads
+const storage = multer.memoryStorage();
+const upload = multer({ 
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Allow pdf, images, and common document types
+    if (file.mimetype === 'application/pdf' || 
+        file.mimetype.startsWith('image/') ||
+        file.mimetype === 'application/msword' ||
+        file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      cb(null, true);
+    } else {
+      cb(new AppError('Invalid file type. Only PDF, images, and Word documents are allowed.', 400));
+    }
+  }
+});
 
 export class ConsultationController {
   constructor() {
@@ -13,6 +34,8 @@ export class ConsultationController {
     this.getConsultationsByPatient = this.getConsultationsByPatient.bind(this);
     this.updateConsultation = this.updateConsultation.bind(this);
     this.deleteConsultation = this.deleteConsultation.bind(this);
+    this.addMedicalReport = this.addMedicalReport.bind(this);
+    this.removeMedicalReport = this.removeMedicalReport.bind(this);
   }
 
   async addConsultation(req, res) {
@@ -254,5 +277,80 @@ export class ConsultationController {
         message: error.message,
       });
     }
+  }
+
+  // Handle medical report upload
+  async addMedicalReport(req, res) {
+    try {
+      logger.info("Processing add medical report request", {
+        userId: req.user._id,
+        consultationId: req.params.id,
+      });
+
+      // Check if file was uploaded
+      if (!req.file) {
+        throw new AppError("No file uploaded", 400);
+      }
+
+      const consultationId = req.params.id;
+      const user = req.user;
+      const fileBuffer = req.file.buffer;
+      const originalname = req.file.originalname;
+
+      const result = await this.consultationService.addMedicalReport(
+        consultationId,
+        user,
+        fileBuffer,
+        originalname
+      );
+
+      res.status(200).json(result);
+    } catch (error) {
+      logger.error("Error in addMedicalReport controller", {
+        userId: req.user._id,
+        error: error.message,
+      });
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  // Handle medical report removal
+  async removeMedicalReport(req, res) {
+    try {
+      logger.info("Processing remove medical report request", {
+        userId: req.user._id,
+        consultationId: req.params.id,
+        reportId: req.params.reportId,
+      });
+
+      const consultationId = req.params.id;
+      const reportId = req.params.reportId;
+      const user = req.user;
+
+      const result = await this.consultationService.removeMedicalReport(
+        consultationId,
+        reportId,
+        user
+      );
+
+      res.status(200).json(result);
+    } catch (error) {
+      logger.error("Error in removeMedicalReport controller", {
+        userId: req.user._id,
+        error: error.message,
+      });
+      res.status(error.statusCode || 500).json({
+        success: false,
+        message: error.message,
+      });
+    }
+  }
+
+  // Export multer upload middleware
+  getUploadMiddleware() {
+    return upload.single('medicalReport');
   }
 }

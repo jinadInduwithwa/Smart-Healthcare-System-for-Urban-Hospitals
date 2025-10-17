@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
-import { logout } from "@/utils/api";
-import { FiLogOut } from "react-icons/fi";
+
 
 type AppUser = {
   _id?: string;
@@ -82,6 +81,14 @@ export default function Sidebar() {
     user?.patientId ??
     (user?._id ? `#${String(user._id).slice(-5).toUpperCase()}` : "—");
 
+  const handleLogout = () => {
+    if (auth && typeof auth.logout === "function") {
+      auth.logout();
+      // Optional: Redirect to login page
+      window.location.href = "/signin";
+    }
+  };
+
   return (
     <aside
       className="flex flex-col w-64 text-white rounded-r-xl"
@@ -112,22 +119,14 @@ export default function Sidebar() {
       </nav>
 
       {/* Logout Button */}
-      <button
-        onClick={async () => {
-          try {
-            await logout();
-            auth?.setUser?.(null); // Clear auth context
-            auth?.updateUser?.(null); // Clear auth context
-            navigate("/signin"); // Navigate to sign in page instead of home
-          } catch (error) {
-            console.error("Logout failed:", error);
-          }
-        }}
-        className="flex items-center gap-2 mx-3 mb-6 px-4 py-2 text-sm font-medium text-white/90 hover:bg-white/10 rounded-md"
-      >
-        <FiLogOut />
-        <span>Logout</span>
-      </button>
+      <div className="px-3 py-4 border-t border-white/20">
+        <button
+          onClick={handleLogout}
+          className="w-full px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 transition-colors"
+        >
+          Logout
+        </button>
+      </div>
     </aside>
   );
 }
