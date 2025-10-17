@@ -23,6 +23,7 @@ import PastRecords from "./pages/appointments/PastRecords";
 import PaymentManagement from "./pages/appointments/PaymentManagement";
 import PatientShell from "./components/Patient/PatientShell";
 import Profile from "./pages/appointments/Profile";
+import MedicalHistory from "./pages/patient/MedicalHistory";
 
 const DoctorRoutes = () => {
   return (
@@ -55,6 +56,7 @@ const PatientRoutes = () => {
         <Route path="my-appointments" element={<MyAppointments />} />
         <Route path="past-records" element={<PastRecords />} />
         <Route path="payments" element={<PaymentManagement />} />
+        <Route path="medical-history" element={<MedicalHistory />} />
       </Route>
     </Routes>
   );

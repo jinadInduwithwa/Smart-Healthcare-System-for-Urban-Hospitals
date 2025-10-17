@@ -1018,9 +1018,17 @@ export const getDoctors = async (token: string): Promise<any> => {
 
 // Add this function to your api.ts file in the reports section
 
-export const getDoctorAvailabilityReport = async (token: string): Promise<any> => {
+export const getDoctorAvailabilityReport = async (token: string, startDate?: string, endDate?: string): Promise<any> => {
   try {
-    const url = `${BASE_URL}/reports/doctor-availability`;
+    // Build URL with optional date parameters
+    let url = `${BASE_URL}/reports/doctor-availability`;
+    const queryParams = [];
+    if (startDate) queryParams.push(`startDate=${encodeURIComponent(startDate)}`);
+    if (endDate) queryParams.push(`endDate=${encodeURIComponent(endDate)}`);
+    if (queryParams.length > 0) {
+      url += `?${queryParams.join('&')}`;
+    }
+    
     console.log("Fetching doctor availability report from:", url);
     
     const response = await fetch(url, {
@@ -1222,4 +1230,28 @@ export const getPatientCheckInReport = async (startDate: string, endDate: string
     console.error("Get patient check-in report error:", error);
     throw error;
   }
+};
+
+// ---------------- Medical History APIs ----------------
+
+export const getMyMedicalHistory = async () => {
+  try {
+    const response = await fetch(`${BASE_URL}/medical-history/me`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData?.message || "Failed to fetch medical history");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Fetch medical history error:", error);
+    throw error;
+  }
 };

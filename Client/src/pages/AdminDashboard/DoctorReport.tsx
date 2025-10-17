@@ -238,6 +238,7 @@ function DoctorReport() {
       let availabilityData: DoctorReportData[] = [];
       
       try {
+        // For now, we're not passing date parameters, but the function now supports them
         const availabilityResponse = await getDoctorAvailabilityReport(token);
         console.log("Availability API response:", availabilityResponse);
         

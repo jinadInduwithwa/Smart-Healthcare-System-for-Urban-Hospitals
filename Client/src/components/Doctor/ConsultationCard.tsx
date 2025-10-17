@@ -1,41 +1,6 @@
 import React, { useState } from 'react';
 import { FiChevronDown, FiFile, FiDownload } from 'react-icons/fi';
-
-interface Diagnosis {
-  code: string;
-  description?: string;
-}
-
-interface ClinicalNotes {
-  subjective: string;
-  objective: string;
-}
-
-interface Medication {
-  drug: string;
-  dosage: string;
-  frequency: string;
-}
-
-interface MedicalReport {
-  _id: string;
-  url: string;
-  publicId: string;
-  fileName: string;
-  uploadedAt: string;
-}
-
-interface Consultation {
-  _id: string;
-  patientId: string;
-  consultationDate: string;
-  diagnosis: Diagnosis[];
-  clinicalNotes: ClinicalNotes;
-  medications: Medication[];
-  recommendedTests: string[];
-  status: string;
-  medicalReports: MedicalReport[];
-}
+import { Consultation, MedicalReport } from '@/types/doctor';
 
 interface ConsultationCardProps {
   consultation: Consultation;
@@ -67,7 +32,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
       {/* Card Header */}
       <div 
         className="p-5 cursor-pointer flex justify-between items-center"
-        onClick={() => toggleConsultation(consultation._id)}
+        onClick={() => toggleConsultation(consultation._id || '')}
       >
         <div className="flex items-center space-x-4">
           <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
@@ -91,14 +56,14 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
               {formatDate(consultation.consultationDate)}
             </h3>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Patient ID: {consultation.patientId}
+              Patient ID: {typeof consultation.patient === 'string' ? consultation.patient : consultation.patient?._id || 'Unknown'}
             </p>
           </div>
         </div>
         
         <div className="flex items-center space-x-4">
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(consultation.status)}`}>
-            {consultation.status.replace('_', ' ')}
+          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(consultation.status || 'SCHEDULED')}`}>
+            {(consultation.status || 'SCHEDULED').replace('_', ' ')}
           </span>
           <FiChevronDown className={`h-5 w-5 text-gray-500 dark:text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
         </div>
@@ -118,11 +83,11 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
               <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Subjective</p>
-                  <p className="mt-1 text-gray-600 dark:text-gray-400">{consultation.clinicalNotes.subjective}</p>
+                  <p className="mt-1 text-gray-600 dark:text-gray-400">{consultation.clinicalNotes?.subjective || 'Not provided'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Objective</p>
-                  <p className="mt-1 text-gray-600 dark:text-gray-400">{consultation.clinicalNotes.objective}</p>
+                  <p className="mt-1 text-gray-600 dark:text-gray-400">{consultation.clinicalNotes?.objective || 'Not provided'}</p>
                 </div>
               </div>
               
@@ -133,7 +98,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
                 Diagnosis
               </h4>
               <div className="mt-2">
-                {consultation.diagnosis.length > 0 ? (
+                {consultation.diagnosis && consultation.diagnosis.length > 0 ? (
                   <ul className="space-y-2">
                     {consultation.diagnosis.map((d, idx) => (
                       <li key={idx} className="flex items-start">
@@ -159,7 +124,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
                 Medications
               </h4>
               <div className="mt-2">
-                {consultation.medications.length > 0 ? (
+                {consultation.medications && consultation.medications.length > 0 ? (
                   <ul className="space-y-3">
                     {consultation.medications.map((med, idx) => (
                       <li key={idx} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
@@ -182,7 +147,7 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
                 Recommended Tests
               </h4>
               <div className="mt-2">
-                {consultation.recommendedTests.length > 0 ? (
+                {consultation.recommendedTests && consultation.recommendedTests.length > 0 ? (
                   <ul className="flex flex-wrap gap-2">
                     {consultation.recommendedTests.map((test, idx) => (
                       <li key={idx} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm">
@@ -202,14 +167,14 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
                     <FiFile className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" />
                     Medical Reports
                   </h4>
-                  <div className="mt-2">
-                    <ul className="space-y-2">
-                      {consultation.medicalReports.map((report) => (
-                        <li key={report._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {consultation.medicalReports.map((report) => (
+                      <div key={report._id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/30">
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center">
-                            <span className="text-lg mr-2">{getFileIcon(report.fileName)}</span>
-                            <div>
-                              <p className="font-medium text-gray-900 dark:text-white text-sm truncate max-w-[150px]">
+                            <FiFile className="text-blue-500 dark:text-blue-400 mr-2 flex-shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
                                 {report.fileName}
                               </p>
                               <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -219,36 +184,31 @@ const ConsultationCard: React.FC<ConsultationCardProps> = ({
                           </div>
                           <button
                             onClick={() => handleDownloadReport(report.url, report.fileName)}
-                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                            className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 ml-2"
                             title="Download report"
                           >
-                            <FiDownload className="h-5 w-5" />
+                            <FiDownload className="h-4 w-4" />
                           </button>
-                        </li>
-                      ))}
-                    </ul>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
           </div>
           
-          <div className="mt-6 flex justify-end space-x-3">
-            {onDelete && (
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDelete(consultation._id);
-                }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          {/* Action Buttons */}
+          {onDelete && (
+            <div className="pt-5 border-t border-gray-100 dark:border-gray-700 flex justify-end">
+              <button
+                onClick={() => onDelete(consultation._id || '')}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
               >
-                Delete
+                Delete Consultation
               </button>
-            )}
-            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-              View Full Details
-            </button>
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>
