@@ -135,9 +135,6 @@ importers:
       '@eslint/js':
         specifier: ^9.8.0
         version: 9.36.0
-      '@types/jspdf':
-        specifier: ^2.0.0
-        version: 2.0.0
       '@types/leaflet':
         specifier: ^1.9.17
         version: 1.9.20

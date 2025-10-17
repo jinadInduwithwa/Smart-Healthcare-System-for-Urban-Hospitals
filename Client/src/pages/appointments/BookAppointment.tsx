@@ -161,7 +161,7 @@ export default function BookAppointment() {
       const cancelUrl = `${window.location.origin}/patient/payments?payment_cancelled=true&payment_id=${payment.id}`;
 
       const checkoutSession = await createStripeCheckout(
-        payment.id,
+        payment._id,
         successUrl,
         cancelUrl
       );

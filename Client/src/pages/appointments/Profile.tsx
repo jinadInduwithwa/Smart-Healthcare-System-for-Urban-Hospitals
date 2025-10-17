@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { useAuth } from "@/context/AuthContext";
 import {
-  FormData,
   getProfile,
   updateProfile,
   uploadAvatar,
@@ -23,13 +22,7 @@ type UserMe = {
   dateOfBirth?: string; // ISO
   gender?: "Male" | "Female" | "Other";
   bloodGroup?: string;
-  address?: {
-    street?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
-  };
+  address?: { street?: string; city?: string; state?: string; zipCode?: string; country?: string };
   emergencyContact?: { name?: string; phone?: string; relation?: string };
 };
 
@@ -41,10 +34,7 @@ const Input = (p: JSX.IntrinsicElements["input"]) => (
 );
 
 const Label = ({ children }: { children: React.ReactNode }) => (
-
-  <label className="block text-sm font-medium text-slate-700 mb-1">
-    {children}
-  </label>
+  <label className="block text-sm font-semibold text-slate-700 mb-2 tracking-wide">{children}</label>
 );
 
 export default function Profile() {
@@ -156,7 +146,22 @@ export default function Profile() {
     if (!me) return;
     setSaving(true);
     try {
-      const updated = await updateProfile(me as unknown as Partial<FormData>);
+      // Map UserMe to FormData
+      const formData = {
+        firstName: me.firstName || "",
+        lastName: me.lastName || "",
+        email: me.email,
+        phone: me.phone || "",
+        address: {
+          street: me.address?.street || "",
+          city: me.address?.city || "",
+          state: me.address?.state || "",
+          zipCode: me.address?.zipCode || "",
+          country: me.address?.country || "",
+        },
+      };
+      
+      const updated = await updateProfile(formData);
       setMe(updated);
       syncEverywhere(updated);
       toast.success("Profile updated successfully!", {
@@ -295,6 +300,7 @@ export default function Profile() {
             </button>
           )}
         </div>
+      </div>
 
       {/* QR Code Display */}
       {showQR && (me?._id || me?.id) && (
@@ -329,6 +335,7 @@ export default function Profile() {
             </button>
           </div>
         </div>
+      )}
 
       {/* Details form */}
       <form onSubmit={onSave} className="space-y-6">
@@ -402,7 +409,7 @@ export default function Profile() {
               />
             </div>
           </div>
-        )}
+        </Section>
 
         <Section title="Address">
           <div className="grid md:grid-cols-2 gap-4">
@@ -467,72 +474,7 @@ export default function Profile() {
               />
             </div>
           </div>
-
-          {/* Address Section */}
-          <div className="bg-white rounded-3xl p-1 shadow-xl transform transition-transform hover:scale-[1.005] duration-300">
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8">
-              <div className="border-b border-slate-200 pb-5 mb-7">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-slate-800">Address Information</h3>
-                </div>
-                <p className="text-slate-600">Your residential address details</p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <Label>Street Address</Label>
-                  <Input
-                    value={me.address?.street || ""}
-                    onChange={(e) =>
-                      setMe({ ...me, address: { ...me.address, street: e.currentTarget.value } })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>City</Label>
-                  <Input
-                    value={me.address?.city || ""}
-                    onChange={(e) =>
-                      setMe({ ...me, address: { ...me.address, city: e.currentTarget.value } })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>State/Province</Label>
-                  <Input
-                    value={me.address?.state || ""}
-                    onChange={(e) =>
-                      setMe({ ...me, address: { ...me.address, state: e.currentTarget.value } })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Zip/Postal Code</Label>
-                  <Input
-                    value={me.address?.zipCode || ""}
-                    onChange={(e) =>
-                      setMe({ ...me, address: { ...me.address, zipCode: e.currentTarget.value } })
-                    }
-                  />
-                </div>
-                <div className="md:col-span-2">
-                  <Label>Country</Label>
-                  <Input
-                    value={me.address?.country || ""}
-                    onChange={(e) =>
-                      setMe({ ...me, address: { ...me.address, country: e.currentTarget.value } })
-                    }
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
+        </Section>
 
         <div className="flex items-center gap-3">
           <button
@@ -551,148 +493,64 @@ export default function Profile() {
       </form>
 
       <Section title="Change Password" className="mt-8">
-        <form onSubmit={onChangePassword} className="grid md:grid-cols-3 gap-4">
+        <form onSubmit={onChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <Label>Current password</Label>
-            <Input
-              type="password"
-              value={oldPwd}
-              onChange={(e) => setOldPwd(e.currentTarget.value)}
+            <Label>Current Password</Label>
+            <Input 
+              type="password" 
+              value={oldPwd} 
+              onChange={(e) => setOldPwd(e.currentTarget.value)} 
+              placeholder="Enter current password"
             />
           </div>
           <div>
-            <Label>New password</Label>
-            <Input
-              type="password"
-              value={newPwd}
-              onChange={(e) => setNewPwd(e.currentTarget.value)}
+            <Label>New Password</Label>
+            <Input 
+              type="password" 
+              value={newPwd} 
+              onChange={(e) => setNewPwd(e.currentTarget.value)} 
+              placeholder="Enter new password"
             />
           </div>
           <div>
-            <Label>Confirm new password</Label>
-            <Input
-              type="password"
-              value={newPwd2}
-              onChange={(e) => setNewPwd2(e.currentTarget.value)}
+            <Label>Confirm New Password</Label>
+            <Input 
+              type="password" 
+              value={newPwd2} 
+              onChange={(e) => setNewPwd2(e.currentTarget.value)} 
+              placeholder="Confirm new password"
             />
           </div>
-
-          {/* Save Button */}
-          <div className="bg-white rounded-3xl p-1 shadow-xl">
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                <div className="flex items-center text-slate-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          <div className="md:col-span-3 flex justify-end">
+            <button
+              type="submit"
+              disabled={pwdSaving}
+              className={`px-8 py-4 rounded-xl text-white font-bold text-lg flex items-center gap-3 shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 ${
+                pwdSaving 
+                  ? "bg-slate-400 cursor-not-allowed" 
+                  : "bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 hover:shadow-2xl"
+              }`}
+            >
+              {pwdSaving ? (
+                <>
+                  <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span className="font-medium">These details are used for your appointments and medical records</span>
-                </div>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className={`px-8 py-4 rounded-xl text-white font-bold text-lg flex items-center gap-3 shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 ${
-                    saving 
-                      ? "bg-blue-400 cursor-not-allowed" 
-                      : "bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 hover:shadow-2xl"
-                  }`}
-                >
-                  {saving ? (
-                    <>
-                      <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Saving Changes...
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Save Changes
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </form>
-
-        {/* Change Password Section */}
-        <div className="bg-white rounded-3xl p-1 shadow-xl mt-8 transform transition-transform hover:scale-[1.005] duration-300">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-8">
-            <div className="border-b border-slate-200 pb-5 mb-7">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  Updating Password...
+                </>
+              ) : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
-                </div>
-                <h3 className="text-2xl font-bold text-slate-800">Change Password</h3>
-              </div>
-              <p className="text-slate-600">Update your account password</p>
-            </div>
-            
-            <form onSubmit={onChangePassword} className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <Label>Current Password</Label>
-                <Input 
-                  type="password" 
-                  value={oldPwd} 
-                  onChange={(e) => setOldPwd(e.currentTarget.value)} 
-                  placeholder="Enter current password"
-                />
-              </div>
-              <div>
-                <Label>New Password</Label>
-                <Input 
-                  type="password" 
-                  value={newPwd} 
-                  onChange={(e) => setNewPwd(e.currentTarget.value)} 
-                  placeholder="Enter new password"
-                />
-              </div>
-              <div>
-                <Label>Confirm New Password</Label>
-                <Input 
-                  type="password" 
-                  value={newPwd2} 
-                  onChange={(e) => setNewPwd2(e.currentTarget.value)} 
-                  placeholder="Confirm new password"
-                />
-              </div>
-              <div className="md:col-span-3 flex justify-end">
-                <button
-                  type="submit"
-                  disabled={pwdSaving}
-                  className={`px-8 py-4 rounded-xl text-white font-bold text-lg flex items-center gap-3 shadow-lg transition-all duration-300 transform hover:-translate-y-0.5 ${
-                    pwdSaving 
-                      ? "bg-slate-400 cursor-not-allowed" 
-                      : "bg-gradient-to-r from-slate-700 to-slate-800 hover:from-slate-800 hover:to-slate-900 hover:shadow-2xl"
-                  }`}
-                >
-                  {pwdSaving ? (
-                    <>
-                      <svg className="animate-spin h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      Updating Password...
-                    </>
-                  ) : (
-                    <>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                      </svg>
-                      Update Password
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
+                  Update Password
+                </>
+              )}
+            </button>
           </div>
-        </div>
-      </div>
+        </form>
+      </Section>
     </div>
   );
 }
@@ -716,36 +574,22 @@ function Section({
   );
 }
 
-function Avatar({
-  url,
-  name,
-  onPick,
-}: {
-  url?: string;
-  name: string;
-  onPick: (file?: File) => void;
-}) {
+function Avatar({ url, name, onPick }: { url?: string; name: string; onPick: (file?: File) => void }) {
   return (
     <div className="flex items-center gap-4">
       {url ? (
-        <img
-          src={url}
-          alt="avatar"
-          className="w-16 h-16 rounded-full object-cover border"
-        />
+        <img src={url} alt="avatar" className="w-28 h-28 rounded-full object-cover border-4 border-white shadow-2xl" />
       ) : (
         <div className="w-28 h-28 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 text-white flex items-center justify-center text-3xl font-bold shadow-2xl border-4 border-white">
           {name.slice(0, 2).toUpperCase()}
         </div>
       )}
-      <label className="inline-flex items-center gap-2 text-sm px-3 py-1.5 rounded-md border bg-white hover:bg-slate-50 cursor-pointer">
-        Change photo
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => onPick(e.target.files?.[0])}
-        />
+      <label className="hidden md:inline-flex items-center gap-2 text-base px-5 py-3 rounded-xl border bg-white hover:bg-slate-50 cursor-pointer shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        Change Photo
+        <input type="file" accept="image/*" className="hidden" onChange={(e) => onPick(e.target.files?.[0])} />
       </label>
     </div>
   );
