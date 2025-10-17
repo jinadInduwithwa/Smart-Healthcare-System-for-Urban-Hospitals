@@ -129,7 +129,7 @@ export const getProfile = async () => {
 export const updateProfile = async (userData: Partial<FormData>) => {
   try {
     const response = await fetch(`${BASE_URL}/auth/profile`, {
-      method: "PUT",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${localStorage.getItem("token")}`,

@@ -369,7 +369,7 @@ function Overview() {
                 disabled
                 className="w-full bg-gray-400 text-white px-4 py-2 rounded-lg cursor-not-allowed"
               >
-                Coming Soon
+                Generate Report
               </button>
             </div>
           </div>

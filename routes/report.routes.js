@@ -9,5 +9,6 @@ router.get("/doctor-availability", auth, authorize("ADMIN"), controller.getDocto
 router.get("/patient-check-ins", auth, authorize("ADMIN"), controller.getPatientCheckInReport);
 router.get("/financial", auth, authorize("ADMIN"), controller.getFinancialReport);
 router.get("/overview", auth, authorize("ADMIN"), controller.getOverviewStats);
+router.get("/payment-dashboard", auth, authorize("ADMIN"), controller.getPaymentDashboard); 
 
 export default router;
