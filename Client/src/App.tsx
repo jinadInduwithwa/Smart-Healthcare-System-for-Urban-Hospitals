@@ -59,6 +59,39 @@ const PatientRoutes = () => {
 }
 
 
+// ---------- Admin Dashboard Components ----------
+import AdminLayout from "./pages/AdminDashboard/AdminLayout";
+import AdminOverview from "./pages/AdminDashboard/Overview";
+import Reports from "./pages/AdminDashboard/Reports";
+import DoctorManagement from "./pages/AdminDashboard/DoctorManagement";
+import PatientManagement from "./pages/AdminDashboard/PatientManagement";
+import PatientReport from "./pages/AdminDashboard/PatientReport";
+import DoctorReport from "./pages/AdminDashboard/DoctorReport";
+import FinancialReport from "./pages/AdminDashboard/FinancialReport";
+import Settings from "./pages/AdminDashboard/Settings";
+import AdminProfile from "./pages/AdminDashboard/Profile";
+
+
+
+const AdminRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<AdminLayout />}>
+        <Route index element={<Navigate to="overview" replace />} />
+        <Route path="overview" element={<AdminOverview />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="profile" element={<AdminProfile />} />
+        <Route path="settings" element={<Settings />} />
+        <Route path="users/doctors" element={<DoctorManagement />} />
+        <Route path="users/patients" element={<PatientManagement />} />
+        <Route path="reports/patient" element={<PatientReport />} />
+        <Route path="reports/doctor" element={<DoctorReport />} />
+        <Route path="reports/financial" element={<FinancialReport />} />
+      </Route>
+    </Routes>
+  );
+};
+
 //------------------------- main --------------------------
 
 import AllPatientRecords from "./pages/doctor/AllPatientRecords";
@@ -85,7 +118,10 @@ function App() {
                 path="/doctor-dashboard/*"
                 element={<DoctorRoutes />}
               />
-               <Route path="/*" element={<PatientRoutes />} />
+              {/* Admin Dashboard Routes */}
+              <Route path="/admin-dashboard/*" element={<AdminRoutes />} />
+              {/* Patient Dashboard Routes */}
+              <Route path="/*" element={<PatientRoutes />} />
             </Routes>
             <MobileBottomNav />
         </ToastProvider>
