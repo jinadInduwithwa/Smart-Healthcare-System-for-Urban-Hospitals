@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getConsultationsByPatient, downloadMedicalReport } from '../../utils/api';
-import { FiSearch, FiCalendar, FiFilter, FiX, FiChevronLeft, FiChevronRight, FiChevronDown, FiFile, FiDownload } from 'react-icons/fi';
+import { FiChevronLeft, FiCalendar, FiFilter, FiX, FiSearch } from 'react-icons/fi';
+import ConsultationList from '../../components/Doctor/ConsultationList';
+import ConsultationFilters from '../../components/Doctor/ConsultationFilters';
+import ConsultationPagination from '../../components/Doctor/ConsultationPagination';
 
 // Define interface for Consultation
 interface Diagnosis {
@@ -287,349 +290,39 @@ const AllConsultations: React.FC = () => {
         </div>
       )}
 
-      {/* Enhanced Filters */}
-      <div className="mb-6  p-5 dark:border-gray-700">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="relative flex-1 max-w-xl">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FiSearch className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search by diagnosis, notes, medications, tests, status, patient ID, or report names"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-          
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center">
-              <FiCalendar className="text-gray-500 dark:text-gray-400 mr-2" />
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <span className="mx-2 text-gray-500 dark:text-gray-400">to</span>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div className="flex items-center">
-              <FiFilter className="text-gray-500 dark:text-gray-400 mr-2" />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="py-2 px-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="ALL">All Statuses</option>
-                <option value="SCHEDULED">Scheduled</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="COMPLETED">Completed</option>
-              </select>
-            </div>
-            
-            {(searchTerm || fromDate || toDate || statusFilter !== 'ALL') && (
-              <button
-                onClick={clearFilters}
-                className="flex items-center px-3 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
-              >
-                <FiX className="mr-1" /> Clear
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+      <ConsultationFilters 
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        fromDate={fromDate}
+        setFromDate={setFromDate}
+        toDate={toDate}
+        setToDate={setToDate}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        clearFilters={clearFilters}
+      />
 
-      {/* Results Summary */}
-      <div className="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-gray-600 dark:text-gray-300">
-          Showing <span className="font-medium">{indexOfFirstConsult + 1}</span> to{' '}
-          <span className="font-medium">
-            {Math.min(indexOfLastConsult, filteredConsultations.length)}
-          </span>{' '}
-          of <span className="font-medium">{filteredConsultations.length}</span> consultations
-        </p>
-        <button
-          onClick={handleSort}
-          className="mt-2 sm:mt-0 flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-        >
-          Sort by Date {getSortIcon()}
-        </button>
-      </div>
+      <ConsultationList
+        consultations={currentConsultations}
+        expandedConsultations={expandedConsultations}
+        toggleConsultation={toggleConsultation}
+        getStatusClass={getStatusClass}
+        formatDate={formatDate}
+        formatDateTime={formatDateTime}
+        getFileIcon={getFileIcon}
+        handleDownloadReport={handleDownloadReport}
+        isLoading={isLoading}
+        error={error}
+      />
 
-      {/* Consultation Cards */}
-      <div className="space-y-5">
-        {currentConsultations.length === 0 && !isLoading && !error && (
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm p-8 text-center border border-gray-200 dark:border-gray-700">
-            <div className="mx-auto w-16 h-16 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
-              <FiSearch className="text-blue-500 dark:text-blue-400 text-2xl" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No consultations found</h3>
-            <p className="text-gray-500 dark:text-gray-400">
-              Try adjusting your search or filter criteria
-            </p>
-          </div>
-        )}
-        
-        {currentConsultations.map((consult) => {
-          const isExpanded = expandedConsultations.has(consult._id);
-          
-          return (
-            <div 
-              key={consult._id} 
-              className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-all duration-200 hover:shadow-md"
-            >
-              {/* Card Header */}
-              <div 
-                className="p-5 cursor-pointer flex justify-between items-center"
-                onClick={() => toggleConsultation(consult._id)}
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
-                    <svg
-                      className="h-6 w-6 text-blue-600 dark:text-blue-400"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {formatDate(consult.consultationDate)}
-                    </h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Patient ID: {consult.patientId}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-4">
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(consult.status)}`}>
-                    {consult.status.replace('_', ' ')}
-                  </span>
-                  <FiChevronDown className={`h-5 w-5 text-gray-500 dark:text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                </div>
-              </div>
-              
-              {/* Card Content (Expandable) */}
-              {isExpanded && (
-                <div className="px-5 pb-5 border-t border-gray-100 dark:border-gray-700 pt-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                        <svg className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Clinical Notes
-                      </h4>
-                      <div className="space-y-3">
-                        <div>
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Subjective</p>
-                          <p className="mt-1 text-gray-600 dark:text-gray-400">{consult.clinicalNotes.subjective}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Objective</p>
-                          <p className="mt-1 text-gray-600 dark:text-gray-400">{consult.clinicalNotes.objective}</p>
-                        </div>
-                      </div>
-                      
-                      <h4 className="font-semibold text-gray-900 dark:text-white mt-5 mb-3 flex items-center">
-                        <svg className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                        </svg>
-                        Diagnosis
-                      </h4>
-                      <div className="mt-2">
-                        {consult.diagnosis.length > 0 ? (
-                          <ul className="space-y-2">
-                            {consult.diagnosis.map((d, idx) => (
-                              <li key={idx} className="flex items-start">
-                                <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mt-2 mr-2 flex-shrink-0"></span>
-                                <div>
-                                  <span className="font-medium">{d.code}</span>
-                                  {d.description && <span className="text-gray-600 dark:text-gray-400"> - {d.description}</span>}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-gray-500 dark:text-gray-400">No diagnosis recorded</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                        <svg className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Medications
-                      </h4>
-                      <div className="mt-2">
-                        {consult.medications.length > 0 ? (
-                          <ul className="space-y-3">
-                            {consult.medications.map((med, idx) => (
-                              <li key={idx} className="p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                <div className="font-medium text-gray-900 dark:text-white">{med.drug}</div>
-                                <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                  {med.dosage} • {med.frequency}
-                                </div>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-gray-500 dark:text-gray-400">No medications prescribed</p>
-                        )}
-                      </div>
-                      
-                      <h4 className="font-semibold text-gray-900 dark:text-white mt-5 mb-3 flex items-center">
-                        <svg className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                        </svg>
-                        Recommended Tests
-                      </h4>
-                      <div className="mt-2">
-                        {consult.recommendedTests.length > 0 ? (
-                          <ul className="flex flex-wrap gap-2">
-                            {consult.recommendedTests.map((test, idx) => (
-                              <li key={idx} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 rounded-full text-sm">
-                                {test}
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p className="text-gray-500 dark:text-gray-400">No tests recommended</p>
-                        )}
-                      </div>
-                      
-                      {/* Medical Reports Section */}
-                      {consult.medicalReports && consult.medicalReports.length > 0 && (
-                        <div className="mt-5">
-                          <h4 className="font-semibold text-gray-900 dark:text-white mb-3 flex items-center">
-                            <FiFile className="h-5 w-5 text-blue-500 dark:text-blue-400 mr-2" />
-                            Medical Reports
-                          </h4>
-                          <div className="mt-2">
-                            <ul className="space-y-2">
-                              {consult.medicalReports.map((report) => (
-                                <li key={report._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-                                  <div className="flex items-center">
-                                    <span className="text-lg mr-2">{getFileIcon(report.fileName)}</span>
-                                    <div>
-                                      <p className="font-medium text-gray-900 dark:text-white text-sm truncate max-w-[150px]">
-                                        {report.fileName}
-                                      </p>
-                                      <p className="text-xs text-gray-500 dark:text-gray-400">
-                                        {formatDateTime(report.uploadedAt)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <button
-                                    onClick={() => handleDownloadReport(report.url, report.fileName)}
-                                    className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-                                    title="Download report"
-                                  >
-                                    <FiDownload className="h-5 w-5" />
-                                  </button>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 flex justify-end">
-                    <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
-                      View Full Details
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Enhanced Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="text-gray-600 dark:text-gray-300 text-sm">
-            Page <span className="font-medium">{currentPage}</span> of{' '}
-            <span className="font-medium">{totalPages}</span>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => paginate(currentPage - 1)}
-              disabled={currentPage === 1}
-              className={`p-2 rounded-lg ${currentPage === 1 ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
-            >
-              <FiChevronLeft className="h-5 w-5" />
-            </button>
-            
-            {/* Page numbers */}
-            {[...Array(totalPages)].map((_, i) => {
-              const pageNum = i + 1;
-              // Show first, last, current, and nearby pages
-              if (
-                pageNum === 1 ||
-                pageNum === totalPages ||
-                (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-              ) {
-                return (
-                  <button
-                    key={pageNum}
-                    onClick={() => paginate(pageNum)}
-                    className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                      currentPage === pageNum
-                        ? 'bg-blue-600 text-white'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    {pageNum}
-                  </button>
-                );
-              }
-              
-              // Show ellipsis for skipped pages
-              if (pageNum === currentPage - 2 || pageNum === currentPage + 2) {
-                return (
-                  <span key={pageNum} className="px-2 text-gray-400 dark:text-gray-600">
-                    ...
-                  </span>
-                );
-              }
-              
-              return null;
-            })}
-            
-            <button
-              onClick={() => paginate(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className={`p-2 rounded-lg ${currentPage === totalPages ? 'text-gray-400 dark:text-gray-600 cursor-not-allowed' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
-            >
-              <FiChevronRight className="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-      )}
+      <ConsultationPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        paginate={paginate}
+        indexOfFirstConsult={indexOfFirstConsult}
+        indexOfLastConsult={indexOfLastConsult}
+        totalConsultations={filteredConsultations.length}
+      />
     </div>
   );
 };

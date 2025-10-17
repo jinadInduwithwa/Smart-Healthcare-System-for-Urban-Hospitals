@@ -43,10 +43,12 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.6",
     "punycode": "^2.3.1",
+    "qrcode": "^1.5.3",
     "react-big-calendar": "^1.19.4",
     "react-datepicker": "^8.7.0",
     "react-toastify": "^11.0.5",
     "streamifier": "^0.1.1",
+    "stripe": "^14.21.0",
     "winston": "^3.8.2"
   },
   "devDependencies": {
