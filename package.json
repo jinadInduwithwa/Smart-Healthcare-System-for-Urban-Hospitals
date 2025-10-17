@@ -46,6 +46,7 @@
     "react-big-calendar": "^1.19.4",
     "react-datepicker": "^8.7.0",
     "react-toastify": "^11.0.5",
+    "stripe": "^14.21.0",
     "winston": "^3.8.2"
   },
   "devDependencies": {

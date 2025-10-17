@@ -20,6 +20,7 @@ import MobileBottomNav from "./components/UI/MobileBottomNav";
 import BookAppointment from "./pages/appointments/BookAppointment";
 import MyAppointments from "./pages/appointments/MyAppointments";
 import PastRecords from "./pages/appointments/PastRecords";
+import PaymentManagement from "./pages/appointments/PaymentManagement";
 import PatientShell from "./components/Patient/PatientShell";
 import Profile from "./pages/appointments/Profile";
 
@@ -47,17 +48,17 @@ const DoctorRoutes = () => {
 const PatientRoutes = () => {
   return (
     <Routes>
-   <Route path="/patient" element={<PatientShell />}>
-            <Route index element={<Navigate to="book" replace />} />
-            <Route path="profile" element={<Profile />} />
-            <Route path="book" element={<BookAppointment />} />
-            <Route path="my-appointments" element={<MyAppointments />} />
-            <Route path="past-records" element={<PastRecords />} />
-          </Route>
+      <Route path="/patient" element={<PatientShell />}>
+        <Route index element={<Navigate to="book" replace />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="book" element={<BookAppointment />} />
+        <Route path="my-appointments" element={<MyAppointments />} />
+        <Route path="past-records" element={<PastRecords />} />
+        <Route path="payments" element={<PaymentManagement />} />
+      </Route>
     </Routes>
   );
-}
-
+};
 
 //------------------------- main --------------------------
 
@@ -72,22 +73,19 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-            <Routes>
-              <Route path="/" element={<Layout />}>
-                <Route path="/" element={<Home />} />
-                <Route path="/signin" element={<SignIn />} /> 
-                <Route path="/signup" element={<SignUp />} />
-                <Route path="/doctor-signup" element={<SignUp_Doctor />} />
-                <Route path="/account" element={<Profile />} />
-              </Route>
-              {/* path for doctor dashboard */}
-              <Route
-                path="/doctor-dashboard/*"
-                element={<DoctorRoutes />}
-              />
-               <Route path="/*" element={<PatientRoutes />} />
-            </Routes>
-            <MobileBottomNav />
+          <Routes>
+            <Route path="/" element={<Layout />}>
+              <Route path="/" element={<Home />} />
+              <Route path="/signin" element={<SignIn />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route path="/doctor-signup" element={<SignUp_Doctor />} />
+              <Route path="/account" element={<Profile />} />
+            </Route>
+            {/* path for doctor dashboard */}
+            <Route path="/doctor-dashboard/*" element={<DoctorRoutes />} />
+            <Route path="/*" element={<PatientRoutes />} />
+          </Routes>
+          <MobileBottomNav />
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
