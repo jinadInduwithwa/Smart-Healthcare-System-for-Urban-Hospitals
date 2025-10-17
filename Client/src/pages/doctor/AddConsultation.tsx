@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { addConsultation, searchTestNames, searchDiagnosisCodes, searchDrugs, addMedicalReport } from '../../utils/api';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { FiUser, FiCalendar, FiCheck, FiX, FiBook, FiUpload, FiFile } from 'react-icons/fi';
 import TabNavigation from '../../components/Doctor/TabNavigation';
 import DiagnosisInput from '../../components/Doctor/DiagnosisInput';
 import MedicationInput from '../../components/Doctor/MedicationInput';
@@ -79,22 +78,10 @@ const AddConsultation: React.FC = () => {
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [diagnosisSuggestions, setDiagnosisSuggestions] = useState<{ [index: number]: SearchResult[] }>({});
-  const [testSuggestions, setTestSuggestions] = useState<{ [index: number]: SearchResult[] }>({});
-  const [drugSuggestions, setDrugSuggestions] = useState<{ [index: number]: Drug[] }>({});
-  const [isSearchingDiagnosis, setIsSearchingDiagnosis] = useState<{ [index: number]: boolean }>({});
-  const [isSearchingTests, setIsSearchingTests] = useState<{ [index: number]: boolean }>({});
-  const [isSearchingDrugs, setIsSearchingDrugs] = useState<{ [index: number]: boolean }>({});
   const [activeTab, setActiveTab] = useState('basic');
-  const [selectedDrugs, setSelectedDrugs] = useState<{ [index: number]: Drug | null }>({});
   const [medicalReports, setMedicalReports] = useState<MedicalReport[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   
-  // Refs for detecting clicks outside dropdowns
-  const drugDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
-  const diagnosisDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
-  const testDropdownRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
-
   // Redirect if not authenticated or not a doctor
   useEffect(() => {
     if (!authLoading && (!isAuthenticated || user?.role !== 'DOCTOR')) {
@@ -108,43 +95,6 @@ const AddConsultation: React.FC = () => {
       setFormData(prev => ({ ...prev, doctor: user.id }));
     }
   }, [user]);
-
-  // Handle clicks outside dropdowns to close them
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      // Close drug dropdowns
-      Object.keys(drugSuggestions).forEach(index => {
-        const currentIndex = parseInt(index);
-        if (drugDropdownRefs.current[currentIndex] && 
-            !drugDropdownRefs.current[currentIndex]?.contains(event.target as Node)) {
-          setDrugSuggestions(prev => ({ ...prev, [currentIndex]: [] }));
-        }
-      });
-      
-      // Close diagnosis dropdowns
-      Object.keys(diagnosisSuggestions).forEach(index => {
-        const currentIndex = parseInt(index);
-        if (diagnosisDropdownRefs.current[currentIndex] && 
-            !diagnosisDropdownRefs.current[currentIndex]?.contains(event.target as Node)) {
-          setDiagnosisSuggestions(prev => ({ ...prev, [currentIndex]: [] }));
-        }
-      });
-      
-      // Close test dropdowns
-      Object.keys(testSuggestions).forEach(index => {
-        const currentIndex = parseInt(index);
-        if (testDropdownRefs.current[currentIndex] && 
-            !testDropdownRefs.current[currentIndex]?.contains(event.target as Node)) {
-          setTestSuggestions(prev => ({ ...prev, [currentIndex]: [] }));
-        }
-      });
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [drugSuggestions, diagnosisSuggestions, testSuggestions]);
 
   // Validate form data
   const validateForm = () => {
@@ -210,115 +160,12 @@ const AddConsultation: React.FC = () => {
     return true;
   };
 
-  // Handle diagnosis input with autocomplete
-  const handleDiagnosisChange = async (index: number, field: string, value: string) => {
-    const newDiagnosis = [...formData.diagnosis];
-    newDiagnosis[index] = { ...newDiagnosis[index], [field]: value };
-    setFormData(prev => ({ ...prev, diagnosis: newDiagnosis }));
-    setErrors(prev => ({ ...prev, [`diagnosis[${index}].${field}`]: '' }));
-
-    // Trigger search for code or description with 2+ characters
-    if ((field === 'code' || field === 'description') && value.length >= 2) {
-      setIsSearchingDiagnosis(prev => ({ ...prev, [index]: true }));
-      try {
-        const response = await searchDiagnosisCodes({ query: value, maxResults: 10 });
-        if (response.success) {
-          setDiagnosisSuggestions(prev => ({ ...prev, [index]: response.data.results }));
-        } else {
-          setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
-          addToast('Failed to search diagnosis codes', 'error');
-        }
-      } catch (err) {
-        console.error('Error fetching diagnosis suggestions:', err);
-        setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
-        addToast('Error fetching diagnosis suggestions', 'error');
-      } finally {
-        setIsSearchingDiagnosis(prev => ({ ...prev, [index]: false }));
-      }
-    } else {
-      setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
-      setIsSearchingDiagnosis(prev => ({ ...prev, [index]: false }));
-    }
-  };
-
-  // Select diagnosis from suggestions
-  const selectDiagnosis = (index: number, suggestion: SearchResult) => {
-    const newDiagnosis = [...formData.diagnosis];
-    newDiagnosis[index] = {
-      code: suggestion.code || '',
-      description: suggestion.description || suggestion.name || '',
-    };
-    setFormData(prev => ({ ...prev, diagnosis: newDiagnosis }));
-    setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
-    setErrors(prev => ({
-      ...prev,
-      [`diagnosis[${index}].code`]: '',
-      [`diagnosis[${index}].description`]: '',
-    }));
-  };
-
   // Handle medication input
   const handleMedicationChange = (index: number, field: string, value: string) => {
     const newMedications = [...formData.medications];
     newMedications[index] = { ...newMedications[index], [field]: value };
     setFormData(prev => ({ ...prev, medications: newMedications }));
     setErrors(prev => ({ ...prev, [`medications[${index}].${field}`]: '' }));
-  };
-
-  // Handle drug input with autocomplete
-  const handleDrugChange = async (index: number, value: string) => {
-    const newMedications = [...formData.medications];
-    newMedications[index] = { ...newMedications[index], drug: value };
-    setFormData(prev => ({ ...prev, medications: newMedications }));
-    setErrors(prev => ({ ...prev, [`medications[${index}].drug`]: '' }));
-
-    // Clear selected drug when user types a different value
-    // Only clear if the value is different from the selected drug name
-    if (selectedDrugs[index] && selectedDrugs[index]?.name !== value) {
-      setSelectedDrugs(prev => ({ ...prev, [index]: null }));
-      // Reset dosage and frequency when drug name changes
-      handleMedicationChange(index, 'dosage', '');
-      handleMedicationChange(index, 'frequency', '');
-    }
-
-    // Always trigger search for drug suggestions, even for single characters
-    // This improves responsiveness for the user
-    setIsSearchingDrugs(prev => ({ ...prev, [index]: true }));
-    try {
-      const response = await searchDrugs({ query: value, maxResults: 10 });
-      if (response.success) {
-        setDrugSuggestions(prev => ({ ...prev, [index]: response.data.results }));
-      } else {
-        setDrugSuggestions(prev => ({ ...prev, [index]: [] }));
-        addToast('Failed to search drugs', 'error');
-      }
-    } catch (err) {
-      console.error('Error fetching drug suggestions:', err);
-      setDrugSuggestions(prev => ({ ...prev, [index]: [] }));
-      addToast('Error fetching drug suggestions', 'error');
-    } finally {
-      setIsSearchingDrugs(prev => ({ ...prev, [index]: false }));
-    }
-  };
-
-  // Select drug from suggestions
-  const selectDrug = (index: number, drug: Drug) => {
-    const newMedications = [...formData.medications];
-    newMedications[index] = {
-      ...newMedications[index],
-      drug: drug.name,
-      dosage: drug.dosageForms[0] || '',
-      frequency: drug.frequencyOptions[0] || '',
-    };
-    setFormData(prev => ({ ...prev, medications: newMedications }));
-    setDrugSuggestions(prev => ({ ...prev, [index]: [] }));
-    setSelectedDrugs(prev => ({ ...prev, [index]: drug }));
-    setErrors(prev => ({
-      ...prev,
-      [`medications[${index}].drug`]: '',
-      [`medications[${index}].dosage`]: '',
-      [`medications[${index}].frequency`]: '',
-    }));
   };
 
   // Handle dosage change
@@ -335,45 +182,6 @@ const AddConsultation: React.FC = () => {
     newMedications[index] = { ...newMedications[index], frequency: value };
     setFormData(prev => ({ ...prev, medications: newMedications }));
     setErrors(prev => ({ ...prev, [`medications[${index}].frequency`]: '' }));
-  };
-
-  // Handle test input with autocomplete
-  const handleTestChange = async (index: number, value: string) => {
-    const newTests = [...formData.recommendedTests];
-    newTests[index] = value;
-    setFormData(prev => ({ ...prev, recommendedTests: newTests }));
-    setErrors(prev => ({ ...prev, [`recommendedTests[${index}]`]: '' }));
-
-    if (value.length >= 2) {
-      setIsSearchingTests(prev => ({ ...prev, [index]: true }));
-      try {
-        const response = await searchTestNames({ query: value, maxResults: 10 });
-        if (response.success) {
-          setTestSuggestions(prev => ({ ...prev, [index]: response.data.results }));
-        } else {
-          setTestSuggestions(prev => ({ ...prev, [index]: [] }));
-          addToast('Failed to search test names', 'error');
-        }
-      } catch (err) {
-        console.error('Error fetching test suggestions:', err);
-        setTestSuggestions(prev => ({ ...prev, [index]: [] }));
-        addToast('Error fetching test suggestions', 'error');
-      } finally {
-        setIsSearchingTests(prev => ({ ...prev, [index]: false }));
-      }
-    } else {
-      setTestSuggestions(prev => ({ ...prev, [index]: [] }));
-      setIsSearchingTests(prev => ({ ...prev, [index]: false }));
-    }
-  };
-
-  // Select test from suggestions
-  const selectTest = (index: number, suggestion: SearchResult) => {
-    const newTests = [...formData.recommendedTests];
-    newTests[index] = suggestion.name || '';
-    setFormData(prev => ({ ...prev, recommendedTests: newTests }));
-    setTestSuggestions(prev => ({ ...prev, [index]: [] }));
-    setErrors(prev => ({ ...prev, [`recommendedTests[${index}]`]: '' }));
   };
 
   // Add/remove dynamic fields
@@ -395,27 +203,12 @@ const AddConsultation: React.FC = () => {
       delete newErrors[`diagnosis[${index}].description`];
       return newErrors;
     });
-    setDiagnosisSuggestions(prev => {
-      const newSuggestions = { ...prev };
-      delete newSuggestions[index];
-      return newSuggestions;
-    });
-    setIsSearchingDiagnosis(prev => {
-      const newSearching = { ...prev };
-      delete newSearching[index];
-      return newSearching;
-    });
   };
 
   const addMedication = () => {
     setFormData(prev => ({
       ...prev,
       medications: [...prev.medications, { drug: '', dosage: '', frequency: '' }],
-    }));
-    // Set the new medication entry's selected drug to null
-    setSelectedDrugs(prev => ({
-      ...prev,
-      [formData.medications.length]: null,
     }));
   };
 
@@ -430,11 +223,6 @@ const AddConsultation: React.FC = () => {
       delete newErrors[`medications[${index}].dosage`];
       delete newErrors[`medications[${index}].frequency`];
       return newErrors;
-    });
-    setSelectedDrugs(prev => {
-      const newSelected = { ...prev };
-      delete newSelected[index];
-      return newSelected;
     });
   };
 
@@ -454,16 +242,6 @@ const AddConsultation: React.FC = () => {
       const newErrors = { ...prev };
       delete newErrors[`recommendedTests[${index}]`];
       return newErrors;
-    });
-    setTestSuggestions(prev => {
-      const newSuggestions = { ...prev };
-      delete newSuggestions[index];
-      return newSuggestions;
-    });
-    setIsSearchingTests(prev => {
-      const newSearching = { ...prev };
-      delete newSearching[index];
-      return newSearching;
     });
   };
 

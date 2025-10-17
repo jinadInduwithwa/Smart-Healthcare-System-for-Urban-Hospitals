@@ -116,7 +116,10 @@ function App() {
             </Route>
             {/* path for doctor dashboard */}
             <Route path="/doctor-dashboard/*" element={<DoctorRoutes />} />
+            {/* Patient Dashboard Routes */}
             <Route path="/*" element={<PatientRoutes />} />
+            {/* Admin Dashboard Routes */}
+          <Route path="/admin-dashboard/*" element={<AdminRoutes />} />
           </Routes>
           <MobileBottomNav />
         </ToastProvider>

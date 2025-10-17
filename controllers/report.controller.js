@@ -176,8 +176,9 @@ export class ReportController {
     } catch (error) {
       logger.error("Error generating patient check-in report:", {
         error: error.message,
-        startDate,
-        endDate,
+        // Only include startDate and endDate if they were defined
+        ...(req.query.startDate && { startDate: req.query.startDate }),
+        ...(req.query.endDate && { endDate: req.query.endDate }),
       });
       res.status(400).json({ status: "error", message: error.message || "Failed to generate report" });
     }

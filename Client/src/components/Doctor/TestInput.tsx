@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiPlus, FiTrash2 } from 'react-icons/fi';
+import { searchTestNames } from '../../utils/api';
 
 interface SearchResult {
   code?: string;
@@ -49,9 +50,25 @@ const TestInput: React.FC<TestInputProps> = ({
     setTests(newTests);
     setErrors({ ...errors, [`recommendedTests[${index}]`]: '' });
 
-    // For demo purposes, we'll just clear suggestions
-    setTestSuggestions(prev => ({ ...prev, [index]: [] }));
-    setIsSearchingTests(prev => ({ ...prev, [index]: false }));
+    if (value.length >= 2) {
+      setIsSearchingTests(prev => ({ ...prev, [index]: true }));
+      try {
+        const response = await searchTestNames({ query: value, maxResults: 10 });
+        if (response.success) {
+          setTestSuggestions(prev => ({ ...prev, [index]: response.data.results }));
+        } else {
+          setTestSuggestions(prev => ({ ...prev, [index]: [] }));
+        }
+      } catch (err) {
+        console.error('Error fetching test suggestions:', err);
+        setTestSuggestions(prev => ({ ...prev, [index]: [] }));
+      } finally {
+        setIsSearchingTests(prev => ({ ...prev, [index]: false }));
+      }
+    } else {
+      setTestSuggestions(prev => ({ ...prev, [index]: [] }));
+      setIsSearchingTests(prev => ({ ...prev, [index]: false }));
+    }
   };
 
   // Select test from suggestions

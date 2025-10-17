@@ -4,8 +4,9 @@ import { Patient } from "../models/patient.model.js";
 import mongoose from "mongoose";
 import logger from "../utils/logger.js";
 import { AppError } from "../utils/AppError.js";
-import { validateDiagnosisCode, searchDiagnosisCodes } from "../utils/icd.helper.js";
-import { validateTestName, searchTestNames } from "../utils/test.helper.js";
+// searchDiagnosisCodes and searchTestNames are used for the search functionality
+import { searchDiagnosisCodes } from "../utils/icd.helper.js";
+import { searchTestNames } from "../utils/test.helper.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import fs from "fs";
 import path from "path";
@@ -140,24 +141,32 @@ export class ConsultationService {
       // NOTE: Patient validation has been removed as requested
       // The patient ID is assumed to be valid
 
-      // Validate diagnosis codes
+      // Validate diagnosis codes against local data
       const validatedDiagnoses = [];
       if (diagnosis.length > 0) {
         for (const diag of diagnosis) {
-          const { code, description } = await validateDiagnosisCode(diag.code);
+          // Find the diagnosis code in our local data
+          const foundCode = this.diagnosisCodes.find(code => code.code === diag.code);
+          if (!foundCode) {
+            throw new AppError(`Invalid diagnosis code: ${diag.code}`, 400);
+          }
           validatedDiagnoses.push({
-            code,
-            description: diag.description || description,
+            code: diag.code,
+            description: diag.description || foundCode.description || foundCode.name,
           });
         }
       }
 
-      // Validate recommended tests
+      // Validate recommended tests against local data
       const validatedTests = [];
       if (recommendedTests.length > 0) {
         for (const test of recommendedTests) {
-          const { name } = await validateTestName(test);
-          validatedTests.push(name);
+          // Find the test name in our local data
+          const foundTest = this.recommendedTests.find(t => t.name.toLowerCase() === test.toLowerCase());
+          if (!foundTest) {
+            throw new AppError(`Invalid test name: ${test}`, 400);
+          }
+          validatedTests.push(foundTest.name);
         }
       }
 
@@ -371,8 +380,15 @@ export class ConsultationService {
       if (consultationData.diagnosis) {
         consultation.diagnosis = [];
         for (const diag of consultationData.diagnosis) {
-          const { code, description } = await validateDiagnosisCode(diag.code);
-          consultation.diagnosis.push({ code, description: diag.description || description });
+          // Find the diagnosis code in our local data
+          const foundCode = this.diagnosisCodes.find(code => code.code === diag.code);
+          if (!foundCode) {
+            throw new AppError(`Invalid diagnosis code: ${diag.code}`, 400);
+          }
+          consultation.diagnosis.push({ 
+            code: diag.code, 
+            description: diag.description || foundCode.description || foundCode.name 
+          });
         }
       }
       if (consultationData.clinicalNotes) consultation.clinicalNotes = consultationData.clinicalNotes;
@@ -380,8 +396,12 @@ export class ConsultationService {
       if (consultationData.recommendedTests) {
         consultation.recommendedTests = [];
         for (const test of consultationData.recommendedTests) {
-          const { name } = await validateTestName(test);
-          consultation.recommendedTests.push(name);
+          // Find the test name in our local data
+          const foundTest = this.recommendedTests.find(t => t.name.toLowerCase() === test.toLowerCase());
+          if (!foundTest) {
+            throw new AppError(`Invalid test name: ${test}`, 400);
+          }
+          consultation.recommendedTests.push(foundTest.name);
         }
       }
 

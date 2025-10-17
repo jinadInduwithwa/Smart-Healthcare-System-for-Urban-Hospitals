@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getConsultationsByPatient, downloadMedicalReport } from '../../utils/api';
-import { FiChevronLeft, FiCalendar, FiFilter, FiX, FiSearch } from 'react-icons/fi';
+import { getConsultationsByPatient, downloadMedicalReport, deleteConsultation } from '../../utils/api';
+import { FiChevronLeft, FiCalendar, FiFilter, FiX, FiSearch, FiTrash2 } from 'react-icons/fi';
+import { useToast } from '../../context/ToastContext';
 import ConsultationList from '../../components/Doctor/ConsultationList';
 import ConsultationFilters from '../../components/Doctor/ConsultationFilters';
 import ConsultationPagination from '../../components/Doctor/ConsultationPagination';
@@ -44,6 +45,7 @@ interface Consultation {
 }
 
 const AllConsultations: React.FC = () => {
+  const { addToast } = useToast();
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [filteredConsultations, setFilteredConsultations] = useState<Consultation[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -56,6 +58,8 @@ const AllConsultations: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [expandedConsultations, setExpandedConsultations] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [consultationToDelete, setConsultationToDelete] = useState<string | null>(null);
   const consultationsPerPage = 5;
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
@@ -248,8 +252,40 @@ const AllConsultations: React.FC = () => {
       await downloadMedicalReport(url, fileName);
     } catch (error) {
       console.error('Error downloading report:', error);
-      alert('Failed to download the medical report. Please try again.');
+      // Use toast notification instead of alert
+      addToast('Failed to download the medical report. Please try again.', 'error');
     }
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setConsultationToDelete(id);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (consultationToDelete) {
+      try {
+        await deleteConsultation(consultationToDelete);
+        // Remove the deleted consultation from the state
+        setConsultations(prev => prev.filter(consultation => consultation._id !== consultationToDelete));
+        setFilteredConsultations(prev => prev.filter(consultation => consultation._id !== consultationToDelete));
+        setShowDeleteConfirm(false);
+        setConsultationToDelete(null);
+        // Use toast notification instead of alert
+        addToast('Consultation deleted successfully', 'success');
+      } catch (err: any) {
+        console.error('Error deleting consultation:', err);
+        setShowDeleteConfirm(false);
+        setConsultationToDelete(null);
+        // Use toast notification instead of alert
+        addToast('Failed to delete consultation. Please try again.', 'error');
+      }
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setShowDeleteConfirm(false);
+    setConsultationToDelete(null);
   };
 
   return (
@@ -268,6 +304,43 @@ const AllConsultations: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg w-full max-w-md">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Confirm Delete</h3>
+                <button 
+                  onClick={handleDeleteCancel}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <FiX className="h-6 w-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
+                Are you sure you want to delete this consultation? This action cannot be undone.
+              </p>
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={handleDeleteCancel}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors flex items-center"
+                >
+                  <FiTrash2 className="mr-2" />
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isLoading && (
         <div className="mb-6 p-6  flex items-center justify-center">
@@ -313,6 +386,7 @@ const AllConsultations: React.FC = () => {
         handleDownloadReport={handleDownloadReport}
         isLoading={isLoading}
         error={error}
+        onDelete={handleDeleteClick} // Add onDelete prop
       />
 
       <ConsultationPagination

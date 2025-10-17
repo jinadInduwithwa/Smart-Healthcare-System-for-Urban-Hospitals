@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>'],
   testMatch: ['**/__tests__/**/*.js', '**/?(*.)+(spec|test).js'],
@@ -10,7 +10,7 @@ export default {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
-  setupFilesAfterEnv: ['<rootDir>/__tests__/setup.working.js'],
+  setupFilesAfterEnv: ['<rootDir>/setup.working.js'],
   transform: {
     '^.+\\.js$': 'babel-jest'
   }
