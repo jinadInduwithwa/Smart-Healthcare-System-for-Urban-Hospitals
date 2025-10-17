@@ -116,7 +116,9 @@ export const getProfile = async () => {
       throw response;
     }
 
-    return await response.json();
+    const j = await response.json();
+    // The user data is nested under data.user in the response
+    return j.data?.user ?? j.data ?? j;
   } catch (error) {
     console.error("Profile fetch error:", error);
     throw error;
@@ -139,7 +141,9 @@ export const updateProfile = async (userData: Partial<FormData>) => {
       throw response;
     }
 
-    return await response.json();
+    const j = await response.json();
+    // The user data is nested under data.user in the response
+    return j.data?.user ?? j.data ?? j;
   } catch (error) {
     console.error("Profile update error:", error);
     throw error;
@@ -806,13 +810,18 @@ export async function getMyAppointments() {
 export async function getMe() {
   console.log("Calling getMe API"); // Debug log
   const r = await fetch(`${BASE_URL}/auth/profile`, {
-    headers: { ...authHeaders() } as HeadersInit,
-  });
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
   console.log("API Response status:", r.status); // Debug log
   if (!r.ok) throw new Error("Failed to load user");
   const j = await r.json();
   console.log("API Response JSON:", j); // Debug log
-  return j.data ?? j;
+  // The user data is nested under data.user in the response
+  return j.data?.user ?? j.data ?? j;
 }
 
 export async function updateMe(payload: any) {
@@ -823,20 +832,22 @@ export async function updateMe(payload: any) {
   });
   if (!r.ok) throw new Error("Failed to update user");
   const j = await r.json();
-  return j.data ?? j;
+  // The user data is nested under data.user in the response
+  return j.data?.user ?? j.data ?? j;
 }
 
 export async function uploadAvatar(file: File) {
   const fd = new FormData();
   fd.append("avatar", file);
-  const r = await fetch(`${BASE_URL}/users/me/avatar`, {
-    method: "PUT",
+  const r = await fetch(`${BASE_URL}/auth/profile/avatar`, {
+    method: "POST",
     headers: { ...authHeaders() } as HeadersInit, // don't set Content-Type for FormData
     body: fd,
   });
   if (!r.ok) throw new Error("Failed to upload avatar");
   const j = await r.json();
-  return j.data ?? j; // { avatarUrl }
+  // The user data is nested under data.user in the response
+  return j.data?.user ?? j.data ?? j; // { avatarUrl }
 }
 
 export async function changePassword(payload: { oldPassword: string; newPassword: string }) {
@@ -849,6 +860,16 @@ export async function changePassword(payload: { oldPassword: string; newPassword
   return r.json();
 }
 
+export const getPastAppointments = async () => {
+  const response = await fetch(`${BASE_URL}/appointments/mine`, {
+    headers: { ...authHeaders() } as HeadersInit,
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err?.message || (response.status === 401 ? "Unauthorized" : "Failed to load past appointments"));
+  }
+  return response.json();
+};
 // Doctor's appointments (requires Authorization)
 export async function getDoctorAppointments() {
   const r = await fetch(`${BASE_URL}/appointments/doctor`, {
