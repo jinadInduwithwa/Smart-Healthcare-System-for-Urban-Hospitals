@@ -1,5 +1,6 @@
 import { body, validationResult, query } from "express-validator";
-import { validateTestName } from "../utils/test.helper.js";
+import fs from "fs";
+import path from "path";
 import { AppError } from "../utils/AppError.js";
 
 export const validateAddConsultation = [
@@ -72,17 +73,29 @@ export const validateAddConsultation = [
     .optional()
     .isArray()
     .withMessage("Recommended tests must be an array")
-    .custom(async (value) => {
+    .custom((value) => {
       if (value && value.length > 0) {
+        // Load test data
+        const dataPath = path.join(process.cwd(), "data", "recommended_tests.json");
+        let testData = [];
+        try {
+          if (fs.existsSync(dataPath)) {
+            const rawData = fs.readFileSync(dataPath, "utf8");
+            testData = JSON.parse(rawData);
+          }
+        } catch (error) {
+          throw new Error(`Failed to load test data: ${error.message}`);
+        }
+        
         for (let i = 0; i < value.length; i++) {
           const test = value[i];
           // Check if test is a string
           if (!test || typeof test !== 'string') {
             throw new Error(`Test at index ${i} must be a string`);
           }
-          try {
-            await validateTestName(test);
-          } catch (error) {
+          // Find the test name in our local data
+          const foundTest = testData.find(t => t.name.toLowerCase() === test.toLowerCase());
+          if (!foundTest) {
             throw new Error(`Invalid test name at index ${i}: ${test}`);
           }
         }
@@ -217,17 +230,29 @@ export const validateUpdateConsultation = [
     .optional()
     .isArray()
     .withMessage("Recommended tests must be an array")
-    .custom(async (value) => {
+    .custom((value) => {
       if (value && value.length > 0) {
+        // Load test data
+        const dataPath = path.join(process.cwd(), "data", "recommended_tests.json");
+        let testData = [];
+        try {
+          if (fs.existsSync(dataPath)) {
+            const rawData = fs.readFileSync(dataPath, "utf8");
+            testData = JSON.parse(rawData);
+          }
+        } catch (error) {
+          throw new Error(`Failed to load test data: ${error.message}`);
+        }
+        
         for (let i = 0; i < value.length; i++) {
           const test = value[i];
           // Check if test is a string
           if (!test || typeof test !== 'string') {
             throw new Error(`Test at index ${i} must be a string`);
           }
-          try {
-            await validateTestName(test);
-          } catch (error) {
+          // Find the test name in our local data
+          const foundTest = testData.find(t => t.name.toLowerCase() === test.toLowerCase());
+          if (!foundTest) {
             throw new Error(`Invalid test name at index ${i}: ${test}`);
           }
         }

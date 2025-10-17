@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiPlus, FiTrash2, FiX } from 'react-icons/fi';
+import { searchDrugs } from '../../utils/api';
 
 interface Medication {
   drug: string;
@@ -76,9 +77,22 @@ const MedicationInput: React.FC<MedicationInputProps> = ({
       handleMedicationChange(index, 'frequency', '');
     }
 
-    // For demo purposes, we'll just clear suggestions
-    setDrugSuggestions(prev => ({ ...prev, [index]: [] }));
-    setIsSearchingDrugs(prev => ({ ...prev, [index]: false }));
+    // Always trigger search for drug suggestions, even for single characters
+    // This improves responsiveness for the user
+    setIsSearchingDrugs(prev => ({ ...prev, [index]: true }));
+    try {
+      const response = await searchDrugs({ query: value, maxResults: 10 });
+      if (response.success) {
+        setDrugSuggestions(prev => ({ ...prev, [index]: response.data.results }));
+      } else {
+        setDrugSuggestions(prev => ({ ...prev, [index]: [] }));
+      }
+    } catch (err) {
+      console.error('Error fetching drug suggestions:', err);
+      setDrugSuggestions(prev => ({ ...prev, [index]: [] }));
+    } finally {
+      setIsSearchingDrugs(prev => ({ ...prev, [index]: false }));
+    }
   };
 
   // Select drug from suggestions

@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/23</span>
+                <span class='fraction'>0/32</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/19</span>
+                <span class='fraction'>0/21</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/2</span>
+                <span class='fraction'>0/3</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/23</span>
+                <span class='fraction'>0/31</span>
             </div>
         
             
@@ -249,7 +249,26 @@
 <a name='L184'></a><a href='#L184'>184</a>
 <a name='L185'></a><a href='#L185'>185</a>
 <a name='L186'></a><a href='#L186'>186</a>
-<a name='L187'></a><a href='#L187'>187</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -386,7 +405,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -437,7 +469,10 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import mongoose from "mongoose";
 import { User } from "./user.model.js";
-import { validateDiagnosisCode } from "../utils/icd.helper.js";
+// Import for type definitions, but we'll use local validation
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 &nbsp;
 const consultationSchema = <span class="cstat-no" title="statement not covered" >new mongoose.Schema(</span>
   {
@@ -572,14 +607,27 @@ const consultationSchema = <span class="cstat-no" title="statement not covered" 
 &nbsp;
     // Validate diagnoses with local dataset
 <span class="cstat-no" title="statement not covered" >    if (this.diagnosis &amp;&amp; this.diagnosis.length &gt; 0) {</span>
+      // Load diagnosis codes data
+      const __filename = <span class="cstat-no" title="statement not covered" >fileURLToPath(import.meta.url);</span>
+      const __dirname = <span class="cstat-no" title="statement not covered" >path.dirname(__filename);</span>
+      const dataPath = <span class="cstat-no" title="statement not covered" >path.join(__dirname, "..", "data", "diagnosis_codes.json");</span>
+      let diagnosisCodes = <span class="cstat-no" title="statement not covered" >[];</span>
+<span class="cstat-no" title="statement not covered" >      try {</span>
+        const rawData = <span class="cstat-no" title="statement not covered" >fs.readFileSync(dataPath, "utf8");</span>
+<span class="cstat-no" title="statement not covered" >        diagnosisCodes = JSON.parse(rawData);</span>
+      } catch (error) {
+<span class="cstat-no" title="statement not covered" >        return next(new Error(`Failed to load diagnosis codes: ${error.message}`));</span>
+      }
+      
 <span class="cstat-no" title="statement not covered" >      for (const diag of this.diagnosis) {</span>
-        const { valid, description } = <span class="cstat-no" title="statement not covered" >await validateDiagnosisCode(diag.code);</span>
-<span class="cstat-no" title="statement not covered" >        if (!valid) {</span>
-<span class="cstat-no" title="statement not covered" >          return next(new Error(`Invalid ICD-10 code: ${diag.code}`));</span>
+        // Find the diagnosis code in our local data
+        const foundCode = <span class="cstat-no" title="statement not covered" >diagnosisCodes.find(<span class="fstat-no" title="function not covered" >co</span>de =&gt; <span class="cstat-no" title="statement not covered" >code.code === diag.code)</span>;</span>
+<span class="cstat-no" title="statement not covered" >        if (!foundCode) {</span>
+<span class="cstat-no" title="statement not covered" >          return next(new Error(`Invalid diagnosis code: ${diag.code}`));</span>
         }
         // Update description if not provided
 <span class="cstat-no" title="statement not covered" >        if (!diag.description) {</span>
-<span class="cstat-no" title="statement not covered" >          diag.description = description;</span>
+<span class="cstat-no" title="statement not covered" >          diag.description = foundCode.description || foundCode.name;</span>
         }
       }
     }
@@ -628,7 +676,7 @@ export const Consultation = <span class="cstat-no" title="statement not covered"
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-10-17T13:06:25.590Z
+                at 2025-10-17T13:58:27.478Z
             </div>
         <script src="../prettify.js"></script>
         <script>

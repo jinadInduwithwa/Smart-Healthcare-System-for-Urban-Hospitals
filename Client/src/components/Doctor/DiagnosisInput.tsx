@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FiPlus, FiTrash2, FiSearch } from 'react-icons/fi';
+import { searchDiagnosisCodes } from '../../utils/api';
 
 interface Diagnosis {
   code: string;
@@ -54,9 +55,26 @@ const DiagnosisInput: React.FC<DiagnosisInputProps> = ({
     setDiagnosis(newDiagnosis);
     setErrors({ ...errors, [`diagnosis[${index}].${field}`]: '' });
 
-    // For demo purposes, we'll just clear suggestions
-    setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
-    setIsSearchingDiagnosis(prev => ({ ...prev, [index]: false }));
+    // Trigger search for code or description with 2+ characters
+    if ((field === 'code' || field === 'description') && value.length >= 2) {
+      setIsSearchingDiagnosis(prev => ({ ...prev, [index]: true }));
+      try {
+        const response = await searchDiagnosisCodes({ query: value, maxResults: 10 });
+        if (response.success) {
+          setDiagnosisSuggestions(prev => ({ ...prev, [index]: response.data.results }));
+        } else {
+          setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
+        }
+      } catch (err) {
+        console.error('Error fetching diagnosis suggestions:', err);
+        setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
+      } finally {
+        setIsSearchingDiagnosis(prev => ({ ...prev, [index]: false }));
+      }
+    } else {
+      setDiagnosisSuggestions(prev => ({ ...prev, [index]: [] }));
+      setIsSearchingDiagnosis(prev => ({ ...prev, [index]: false }));
+    }
   };
 
   // Select diagnosis from suggestions

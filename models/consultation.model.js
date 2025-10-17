@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
 import { User } from "./user.model.js";
-import { validateDiagnosisCode } from "../utils/icd.helper.js";
+// Import for type definitions, but we'll use local validation
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const consultationSchema = new mongoose.Schema(
   {
@@ -135,14 +138,27 @@ consultationSchema.pre("save", async function (next) {
 
     // Validate diagnoses with local dataset
     if (this.diagnosis && this.diagnosis.length > 0) {
+      // Load diagnosis codes data
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const dataPath = path.join(__dirname, "..", "data", "diagnosis_codes.json");
+      let diagnosisCodes = [];
+      try {
+        const rawData = fs.readFileSync(dataPath, "utf8");
+        diagnosisCodes = JSON.parse(rawData);
+      } catch (error) {
+        return next(new Error(`Failed to load diagnosis codes: ${error.message}`));
+      }
+      
       for (const diag of this.diagnosis) {
-        const { valid, description } = await validateDiagnosisCode(diag.code);
-        if (!valid) {
-          return next(new Error(`Invalid ICD-10 code: ${diag.code}`));
+        // Find the diagnosis code in our local data
+        const foundCode = diagnosisCodes.find(code => code.code === diag.code);
+        if (!foundCode) {
+          return next(new Error(`Invalid diagnosis code: ${diag.code}`));
         }
         // Update description if not provided
         if (!diag.description) {
-          diag.description = description;
+          diag.description = foundCode.description || foundCode.name;
         }
       }
     }
