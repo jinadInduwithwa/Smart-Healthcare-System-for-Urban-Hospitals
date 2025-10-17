@@ -23,7 +23,7 @@ class PaymentService {
       }
 
       // Get patient from user
-      const patient = await Patient.findOne({ user: userId });
+      const patient = await Patient.findOne({ userId: userId });
       if (!patient) {
         throw new AppError("Patient profile not found", 404);
       }
@@ -56,8 +56,8 @@ class PaymentService {
 
       return await payment.populate([
         { path: "appointment" },
-        { path: "patient", populate: { path: "user" } },
-        { path: "doctor", populate: { path: "user" } },
+        { path: "patient", populate: { path: "userId" } },
+        { path: "doctor", populate: { path: "userId" } },
       ]);
     } catch (error) {
       logger.error(`Error creating payment: ${error.message}`);

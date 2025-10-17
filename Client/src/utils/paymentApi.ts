@@ -1,5 +1,6 @@
 // Payment API utilities with Stripe integration
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3002/api";
 
 export interface PaymentDetails {
   id: string;
@@ -60,7 +61,7 @@ export interface PaymentSummary {
 export interface CreatePaymentRequest {
   appointmentId: string;
   amount: number;
-  paymentMethod?: "card" | "insurance" | "hospital" | "online";
+  paymentMethod?: "CARD" | "INSURANCE" | "HOSPITAL" | "ONLINE";
   dueDate?: string;
 }
 

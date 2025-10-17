@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
 import {
   FaCreditCard,
   FaHistory,
@@ -9,11 +11,45 @@ import {
 } from "react-icons/fa";
 import OutstandingPayments from "./OutstandingPayments";
 import PaymentHistory from "./PaymentHistory";
+import { verifyStripePayment } from "@/utils/paymentApi";
 
 type TabType = "outstanding" | "history";
 
 export default function PaymentManagement() {
   const [activeTab, setActiveTab] = useState<TabType>("outstanding");
+  const [searchParams] = useSearchParams();
+
+  // Handle payment success/failure from URL params
+  useEffect(() => {
+    const paymentSuccess = searchParams.get("payment_success");
+    const paymentCancelled = searchParams.get("payment_cancelled");
+    const sessionId = searchParams.get("session_id");
+    const paymentId = searchParams.get("payment_id");
+
+    if (paymentSuccess && sessionId) {
+      handlePaymentSuccess(sessionId);
+    } else if (paymentCancelled && paymentId) {
+      toast.error("Payment was cancelled. You can try again anytime.");
+      // Clean up URL
+      window.history.replaceState({}, document.title, "/patient/payments");
+    }
+  }, [searchParams]);
+
+  const handlePaymentSuccess = async (sessionId: string) => {
+    try {
+      const payment = await verifyStripePayment(sessionId);
+      toast.success(
+        `Payment successful! Your appointment is confirmed. Transaction ID: ${payment.transactionId}`
+      );
+      setActiveTab("history"); // Switch to history tab to show the payment
+    } catch (error) {
+      console.error("Payment verification error:", error);
+      toast.error("Payment verification failed. Please contact support.");
+    } finally {
+      // Clean up URL
+      window.history.replaceState({}, document.title, "/patient/payments");
+    }
+  };
 
   const tabs = [
     {

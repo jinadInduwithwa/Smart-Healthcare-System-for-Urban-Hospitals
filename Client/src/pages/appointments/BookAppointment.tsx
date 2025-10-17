@@ -7,7 +7,7 @@ import {
   getSlots,
   createAppointment,
 } from "@/utils/api";
-import { createPayment } from "@/utils/paymentApi";
+import { createPayment, createStripeCheckout } from "@/utils/paymentApi";
 import { toast } from "react-toastify";
 
 type Doctor = {
@@ -143,7 +143,7 @@ export default function BookAppointment() {
     }
   };
 
-  // Create payment and redirect to payment management
+  // Create payment and redirect to Stripe checkout
   const handlePay = async () => {
     if (!appointmentId) return;
     try {
@@ -153,14 +153,23 @@ export default function BookAppointment() {
       const payment = await createPayment({
         appointmentId,
         amount: 2500, // Fixed consultation fee
-        paymentMethod: "card",
+        paymentMethod: "CARD", // Changed from "card" to "CARD"
       });
 
-      setPayOpen(false);
-      toast.success("Payment created! Redirecting to payment page...");
+      // Create Stripe checkout session
+      const successUrl = `${window.location.origin}/patient/payments?payment_success=true&payment_id=${payment.id}`;
+      const cancelUrl = `${window.location.origin}/patient/payments?payment_cancelled=true&payment_id=${payment.id}`;
 
-      // Redirect to payment management page
-      window.location.href = `/patient/payments?payment_id=${payment.id}`;
+      const checkoutSession = await createStripeCheckout(
+        payment.id,
+        successUrl,
+        cancelUrl
+      );
+
+      setPayOpen(false);
+
+      // Redirect to Stripe checkout
+      window.location.href = checkoutSession.url;
     } catch (e: unknown) {
       const error = e as Error;
       toast.error(
