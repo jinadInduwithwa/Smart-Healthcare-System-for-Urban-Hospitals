@@ -11,9 +11,9 @@ import {
   FaShieldAlt,
   FaHospital,
 } from "react-icons/fa";
+import jsPDF from "jspdf";
 import {
   getPaymentHistory,
-  downloadReceipt,
   type PaymentRecord,
 } from "@/utils/paymentApi";
 
@@ -140,28 +140,226 @@ export default function PaymentHistory() {
 
   const handleDownloadReceipt = async (payment: PaymentRecord) => {
     try {
-      toast.info(`Downloading receipt for ${payment.invoiceNumber}...`);
-      const blob = await downloadReceipt(payment.invoiceNumber);
-
-      // Create download link
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `receipt-${payment.invoiceNumber}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      toast.info(`Generating PDF receipt for ${payment.invoiceNumber}...`);
+      
+      // Generate PDF receipt
+      generatePDFReceipt(payment);
 
       toast.success("Receipt downloaded successfully");
-    } catch {
+    } catch (error) {
+      console.error("Receipt download error:", error);
       toast.error("Failed to download receipt");
     }
+  };
+
+  const generatePDFReceipt = (payment: PaymentRecord) => {
+    const pdf = new jsPDF();
+    
+    // Get payment details
+    const patientName = payment.patient?.userId?.firstName && payment.patient?.userId?.lastName 
+      ? `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}` 
+      : "N/A";
+    
+    const doctorName = payment.doctor?.userId?.firstName && payment.doctor?.userId?.lastName 
+      ? `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}` 
+      : "N/A";
+    
+    const appointmentDate = payment.appointment?.availability?.date 
+      ? formatDate(payment.appointment.availability.date)
+      : "N/A";
+    
+    const appointmentTime = payment.appointment?.availability?.timeSlot || "N/A";
+    const hospitalBranch = payment.appointment?.availability?.location || "N/A";
+    const paidDate = payment.paidAt ? formatDate(payment.paidAt) : formatDate(payment.createdAt);
+
+    // Set up PDF content
+    let yPosition = 20;
+
+    // Header
+    pdf.setFontSize(20);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("SMART HEALTHCARE SYSTEM", 105, yPosition, { align: "center" });
+    yPosition += 10;
+
+    pdf.setFontSize(16);
+    pdf.text("Payment Receipt", 105, yPosition, { align: "center" });
+    yPosition += 20;
+
+    // Invoice details
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Invoice Number: ${payment.invoiceNumber}`, 20, yPosition);
+    yPosition += 8;
+    pdf.text(`Transaction ID: ${payment.transactionId || payment.stripePaymentIntentId || "N/A"}`, 20, yPosition);
+    yPosition += 8;
+    pdf.text(`Payment Date: ${paidDate}`, 20, yPosition);
+    yPosition += 15;
+
+    // Patient Information Section
+    pdf.setFont("helvetica", "bold");
+    pdf.text("PATIENT INFORMATION:", 20, yPosition);
+    yPosition += 8;
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Name: ${patientName}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Patient ID: ${payment.patient?.userId?._id || "N/A"}`, 20, yPosition);
+    yPosition += 15;
+
+    // Appointment Details Section
+    pdf.setFont("helvetica", "bold");
+    pdf.text("APPOINTMENT DETAILS:", 20, yPosition);
+    yPosition += 8;
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Date: ${appointmentDate}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Time: ${appointmentTime}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Doctor: ${doctorName}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Specialization: ${payment.doctor?.specialization || "N/A"}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Hospital Branch: ${hospitalBranch}`, 20, yPosition);
+    yPosition += 15;
+
+    // Payment Information Section
+    pdf.setFont("helvetica", "bold");
+    pdf.text("PAYMENT INFORMATION:", 20, yPosition);
+    yPosition += 8;
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Amount: Rs. ${payment.amount.toLocaleString()}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Payment Method: ${payment.paymentMethod}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Status: ${payment.status}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Currency: ${payment.currency?.toUpperCase() || "LKR"}`, 20, yPosition);
+    yPosition += 20;
+
+    // Footer
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "italic");
+    pdf.text("Thank you for your payment!", 105, yPosition, { align: "center" });
+    yPosition += 8;
+    pdf.text("For any inquiries, please contact our support team.", 105, yPosition, { align: "center" });
+    yPosition += 8;
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, yPosition, { align: "center" });
+
+    // Add border
+    pdf.rect(10, 10, 190, 277);
+
+    // Download the PDF
+    pdf.save(`receipt-${payment.invoiceNumber}.pdf`);
   };
 
   const handleViewDetails = (payment: PaymentRecord) => {
     toast.info(`Viewing details for ${payment.invoiceNumber}`);
     // Implement view details logic
+  };
+
+  const handleExportAllReceipts = () => {
+    if (filteredPayments.length === 0) {
+      toast.error("No payment records to export");
+      return;
+    }
+
+    try {
+      toast.info("Generating payment history report...");
+      generatePaymentHistoryPDF(filteredPayments);
+      toast.success("Payment history report downloaded successfully");
+    } catch (error) {
+      console.error("Export error:", error);
+      toast.error("Failed to generate report");
+    }
+  };
+
+  const generatePaymentHistoryPDF = (payments: PaymentRecord[]) => {
+    const pdf = new jsPDF();
+    
+    let yPosition = 20;
+
+    // Header
+    pdf.setFontSize(18);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("SMART HEALTHCARE SYSTEM", 105, yPosition, { align: "center" });
+    yPosition += 10;
+
+    pdf.setFontSize(14);
+    pdf.text("Payment History Report", 105, yPosition, { align: "center" });
+    yPosition += 15;
+
+    // Report Details
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Total Records: ${payments.length}`, 20, yPosition);
+    yPosition += 6;
+    
+    const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    pdf.text(`Total Amount: Rs. ${totalAmount.toLocaleString()}`, 20, yPosition);
+    yPosition += 15;
+
+    // Table Headers
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.text("Invoice", 20, yPosition);
+    pdf.text("Date", 60, yPosition);
+    pdf.text("Patient", 95, yPosition);
+    pdf.text("Doctor", 135, yPosition);
+    pdf.text("Amount", 175, yPosition);
+    yPosition += 5;
+
+    // Draw header line
+    pdf.line(20, yPosition, 195, yPosition);
+    yPosition += 5;
+
+    // Table Data
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+
+    payments.forEach((payment) => {
+      // Check if we need a new page
+      if (yPosition > 270) {
+        pdf.addPage();
+        yPosition = 20;
+      }
+
+      const patientName = payment.patient?.userId?.firstName && payment.patient?.userId?.lastName 
+        ? `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}` 
+        : "N/A";
+      
+      const doctorName = payment.doctor?.userId?.firstName && payment.doctor?.userId?.lastName 
+        ? `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}` 
+        : "N/A";
+      
+      const appointmentDate = payment.appointment?.availability?.date 
+        ? formatDate(payment.appointment.availability.date)
+        : "N/A";
+
+      // Truncate long text to fit
+      const truncateText = (text: string, maxLength: number) => 
+        text.length > maxLength ? text.substring(0, maxLength - 3) + "..." : text;
+
+      pdf.text(truncateText(payment.invoiceNumber, 15), 20, yPosition);
+      pdf.text(truncateText(appointmentDate, 12), 60, yPosition);
+      pdf.text(truncateText(patientName, 15), 95, yPosition);
+      pdf.text(truncateText(doctorName, 15), 135, yPosition);
+      pdf.text(`Rs. ${payment.amount.toLocaleString()}`, 175, yPosition);
+      
+      yPosition += 5;
+    });
+
+    // Footer
+    yPosition += 10;
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "italic");
+    pdf.text("Generated by Smart Healthcare System", 105, yPosition, { align: "center" });
+
+    // Add border to first page
+    pdf.rect(10, 10, 190, 277);
+
+    // Download the PDF
+    pdf.save(`payment-history-${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
   if (loading) {
@@ -210,9 +408,13 @@ export default function PaymentHistory() {
               className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
             >
               <option value="all">All Status</option>
+              <option value="PAID">Paid</option>
               <option value="COMPLETED">Completed</option>
               <option value="REFUNDED">Refunded</option>
               <option value="PENDING">Pending</option>
+              <option value="PROCESSING">Processing</option>
+              <option value="FAILED">Failed</option>
+              <option value="CANCELLED">Cancelled</option>
             </select>
           </div>
 
@@ -234,9 +436,13 @@ export default function PaymentHistory() {
           </div>
 
           {/* Export Button */}
-          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center">
+          <button 
+            onClick={handleExportAllReceipts}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
+            disabled={filteredPayments.length === 0}
+          >
             <FaDownload className="mr-2" />
-            Export
+            Export All
           </button>
         </div>
       </div>

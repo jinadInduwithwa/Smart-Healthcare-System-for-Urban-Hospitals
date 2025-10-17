@@ -9,6 +9,7 @@ import {
   FaReceipt,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
+import jsPDF from "jspdf";
 import { getPaymentById, type PaymentDetails } from "@/utils/paymentApi";
 
 interface PaymentSuccessModalProps {
@@ -45,10 +46,146 @@ export default function PaymentSuccessModal({
   };
 
   const handleDownloadReceipt = () => {
-    if (payment?.invoiceNumber) {
-      toast.info(`Downloading receipt for ${payment.invoiceNumber}...`);
-      // Implement receipt download logic
+    if (payment) {
+      toast.info(`Generating PDF receipt for ${payment.invoiceNumber}...`);
+      generatePDFReceipt(payment);
+      toast.success("Receipt downloaded successfully");
     }
+  };
+
+  const generatePDFReceipt = (payment: PaymentDetails) => {
+    const pdf = new jsPDF();
+
+    // Get payment details
+    const patientName =
+      payment.patient?.userId?.firstName && payment.patient?.userId?.lastName
+        ? `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}`
+        : "N/A";
+
+    const doctorName =
+      payment.doctor?.userId?.firstName && payment.doctor?.userId?.lastName
+        ? `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}`
+        : "N/A";
+
+    const appointmentDate = payment.appointment?.availability?.date
+      ? formatDate(payment.appointment.availability.date)
+      : "N/A";
+
+    const appointmentTime =
+      payment.appointment?.availability?.timeSlot || "N/A";
+    const hospitalBranch = payment.appointment?.availability?.location || "N/A";
+    const paidDate = payment.paidAt
+      ? formatDate(payment.paidAt)
+      : formatDate(payment.createdAt);
+
+    // Set up PDF content
+    let yPosition = 20;
+
+    // Header
+    pdf.setFontSize(20);
+    pdf.setFont("helvetica", "bold");
+    pdf.text("SMART HEALTHCARE SYSTEM", 105, yPosition, { align: "center" });
+    yPosition += 10;
+
+    pdf.setFontSize(16);
+    pdf.text("Payment Receipt", 105, yPosition, { align: "center" });
+    yPosition += 20;
+
+    // Invoice details
+    pdf.setFontSize(12);
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Invoice Number: ${payment.invoiceNumber}`, 20, yPosition);
+    yPosition += 8;
+    pdf.text(
+      `Transaction ID: ${
+        payment.transactionId || payment.stripePaymentIntentId || "N/A"
+      }`,
+      20,
+      yPosition
+    );
+    yPosition += 8;
+    pdf.text(`Payment Date: ${paidDate}`, 20, yPosition);
+    yPosition += 15;
+
+    // Patient Information Section
+    pdf.setFont("helvetica", "bold");
+    pdf.text("PATIENT INFORMATION:", 20, yPosition);
+    yPosition += 8;
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Name: ${patientName}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(
+      `Patient ID: ${payment.patient?.userId?._id || "N/A"}`,
+      20,
+      yPosition
+    );
+    yPosition += 15;
+
+    // Appointment Details Section
+    pdf.setFont("helvetica", "bold");
+    pdf.text("APPOINTMENT DETAILS:", 20, yPosition);
+    yPosition += 8;
+    pdf.setFont("helvetica", "normal");
+    pdf.text(`Date: ${appointmentDate}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Time: ${appointmentTime}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Doctor: ${doctorName}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(
+      `Specialization: ${payment.doctor?.specialization || "N/A"}`,
+      20,
+      yPosition
+    );
+    yPosition += 6;
+    pdf.text(`Hospital Branch: ${hospitalBranch}`, 20, yPosition);
+    yPosition += 15;
+
+    // Payment Information Section
+    pdf.setFont("helvetica", "bold");
+    pdf.text("PAYMENT INFORMATION:", 20, yPosition);
+    yPosition += 8;
+    pdf.setFont("helvetica", "normal");
+    pdf.text(
+      `Amount: Rs. ${payment.amount?.toLocaleString() || "0"}`,
+      20,
+      yPosition
+    );
+    yPosition += 6;
+    pdf.text(`Payment Method: ${payment.paymentMethod}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(`Status: ${payment.status}`, 20, yPosition);
+    yPosition += 6;
+    pdf.text(
+      `Currency: ${payment.currency?.toUpperCase() || "LKR"}`,
+      20,
+      yPosition
+    );
+    yPosition += 20;
+
+    // Footer
+    pdf.setFontSize(10);
+    pdf.setFont("helvetica", "italic");
+    pdf.text("Thank you for your payment!", 105, yPosition, {
+      align: "center",
+    });
+    yPosition += 8;
+    pdf.text(
+      "For any inquiries, please contact our support team.",
+      105,
+      yPosition,
+      { align: "center" }
+    );
+    yPosition += 8;
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, yPosition, {
+      align: "center",
+    });
+
+    // Add border
+    pdf.rect(10, 10, 190, 277);
+
+    // Download the PDF
+    pdf.save(`receipt-${payment.invoiceNumber}.pdf`);
   };
 
   const formatDate = (dateString: string) => {
