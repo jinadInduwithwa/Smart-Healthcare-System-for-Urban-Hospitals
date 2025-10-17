@@ -1,5 +1,6 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+
 
 type AppUser = {
   _id?: string;
@@ -18,7 +19,9 @@ const NavItem = ({ to, label }: { to: string; label: string }) => {
     <Link
       to={to}
       className={`block px-4 py-2 rounded-md text-sm font-medium ${
-        active ? "bg-white text-blue-900 shadow-sm" : "text-white/90 hover:bg-white/10"
+        active
+          ? "bg-white text-blue-900 shadow-sm"
+          : "text-white/90 hover:bg-white/10"
       }`}
     >
       {label}
@@ -57,7 +60,7 @@ function Avatar({ user }: { user?: AppUser }) {
 }
 
 export default function Sidebar() {
-  // Pull user from AuthContext; if not present, try localStorage "user"
+  const navigate = useNavigate();
   const auth = (typeof useAuth === "function" ? useAuth() : null) as any;
   let user: AppUser | undefined = auth?.user;
   if (!user) {
@@ -112,6 +115,7 @@ export default function Sidebar() {
         <NavItem to="/patient/book" label="Book Appointment" />
         <NavItem to="/patient/my-appointments" label="My Appointments" />
         <NavItem to="/patient/past-records" label="Past Records" />
+        <NavItem to="/patient/payments" label="Payment Management" />
       </nav>
 
       {/* Logout Button */}
