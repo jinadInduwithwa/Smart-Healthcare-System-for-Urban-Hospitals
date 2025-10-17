@@ -12,10 +12,7 @@ import {
   FaHospital,
 } from "react-icons/fa";
 import jsPDF from "jspdf";
-import {
-  getPaymentHistory,
-  type PaymentRecord,
-} from "@/utils/paymentApi";
+import { getPaymentHistory, type PaymentRecord } from "@/utils/paymentApi";
 
 export default function PaymentHistory() {
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
@@ -119,12 +116,21 @@ export default function PaymentHistory() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case "PAID":
       case "COMPLETED":
         return "text-green-600 bg-green-100";
       case "REFUNDED":
         return "text-orange-600 bg-orange-100";
       case "PENDING":
         return "text-yellow-600 bg-yellow-100";
+      case "PROCESSING":
+        return "text-blue-600 bg-blue-100";
+      case "FAILED":
+        return "text-red-600 bg-red-100";
+      case "CANCELLED":
+        return "text-gray-600 bg-gray-100";
+      case "OVERDUE":
+        return "text-red-600 bg-red-100";
       default:
         return "text-gray-600 bg-gray-100";
     }
@@ -141,7 +147,7 @@ export default function PaymentHistory() {
   const handleDownloadReceipt = async (payment: PaymentRecord) => {
     try {
       toast.info(`Generating PDF receipt for ${payment.invoiceNumber}...`);
-      
+
       // Generate PDF receipt
       generatePDFReceipt(payment);
 
@@ -154,23 +160,28 @@ export default function PaymentHistory() {
 
   const generatePDFReceipt = (payment: PaymentRecord) => {
     const pdf = new jsPDF();
-    
+
     // Get payment details
-    const patientName = payment.patient?.userId?.firstName && payment.patient?.userId?.lastName 
-      ? `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}` 
-      : "N/A";
-    
-    const doctorName = payment.doctor?.userId?.firstName && payment.doctor?.userId?.lastName 
-      ? `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}` 
-      : "N/A";
-    
-    const appointmentDate = payment.appointment?.availability?.date 
+    const patientName =
+      payment.patient?.userId?.firstName && payment.patient?.userId?.lastName
+        ? `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}`
+        : "N/A";
+
+    const doctorName =
+      payment.doctor?.userId?.firstName && payment.doctor?.userId?.lastName
+        ? `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}`
+        : "N/A";
+
+    const appointmentDate = payment.appointment?.availability?.date
       ? formatDate(payment.appointment.availability.date)
       : "N/A";
-    
-    const appointmentTime = payment.appointment?.availability?.timeSlot || "N/A";
+
+    const appointmentTime =
+      payment.appointment?.availability?.timeSlot || "N/A";
     const hospitalBranch = payment.appointment?.availability?.location || "N/A";
-    const paidDate = payment.paidAt ? formatDate(payment.paidAt) : formatDate(payment.createdAt);
+    const paidDate = payment.paidAt
+      ? formatDate(payment.paidAt)
+      : formatDate(payment.createdAt);
 
     // Set up PDF content
     let yPosition = 20;
@@ -190,7 +201,13 @@ export default function PaymentHistory() {
     pdf.setFont("helvetica", "normal");
     pdf.text(`Invoice Number: ${payment.invoiceNumber}`, 20, yPosition);
     yPosition += 8;
-    pdf.text(`Transaction ID: ${payment.transactionId || payment.stripePaymentIntentId || "N/A"}`, 20, yPosition);
+    pdf.text(
+      `Transaction ID: ${
+        payment.transactionId || payment.stripePaymentIntentId || "N/A"
+      }`,
+      20,
+      yPosition
+    );
     yPosition += 8;
     pdf.text(`Payment Date: ${paidDate}`, 20, yPosition);
     yPosition += 15;
@@ -202,7 +219,11 @@ export default function PaymentHistory() {
     pdf.setFont("helvetica", "normal");
     pdf.text(`Name: ${patientName}`, 20, yPosition);
     yPosition += 6;
-    pdf.text(`Patient ID: ${payment.patient?.userId?._id || "N/A"}`, 20, yPosition);
+    pdf.text(
+      `Patient ID: ${payment.patient?.userId?._id || "N/A"}`,
+      20,
+      yPosition
+    );
     yPosition += 15;
 
     // Appointment Details Section
@@ -216,7 +237,11 @@ export default function PaymentHistory() {
     yPosition += 6;
     pdf.text(`Doctor: ${doctorName}`, 20, yPosition);
     yPosition += 6;
-    pdf.text(`Specialization: ${payment.doctor?.specialization || "N/A"}`, 20, yPosition);
+    pdf.text(
+      `Specialization: ${payment.doctor?.specialization || "N/A"}`,
+      20,
+      yPosition
+    );
     yPosition += 6;
     pdf.text(`Hospital Branch: ${hospitalBranch}`, 20, yPosition);
     yPosition += 15;
@@ -232,17 +257,30 @@ export default function PaymentHistory() {
     yPosition += 6;
     pdf.text(`Status: ${payment.status}`, 20, yPosition);
     yPosition += 6;
-    pdf.text(`Currency: ${payment.currency?.toUpperCase() || "LKR"}`, 20, yPosition);
+    pdf.text(
+      `Currency: ${payment.currency?.toUpperCase() || "LKR"}`,
+      20,
+      yPosition
+    );
     yPosition += 20;
 
     // Footer
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "italic");
-    pdf.text("Thank you for your payment!", 105, yPosition, { align: "center" });
+    pdf.text("Thank you for your payment!", 105, yPosition, {
+      align: "center",
+    });
     yPosition += 8;
-    pdf.text("For any inquiries, please contact our support team.", 105, yPosition, { align: "center" });
+    pdf.text(
+      "For any inquiries, please contact our support team.",
+      105,
+      yPosition,
+      { align: "center" }
+    );
     yPosition += 8;
-    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, yPosition, { align: "center" });
+    pdf.text(`Generated on: ${new Date().toLocaleString()}`, 105, yPosition, {
+      align: "center",
+    });
 
     // Add border
     pdf.rect(10, 10, 190, 277);
@@ -274,7 +312,7 @@ export default function PaymentHistory() {
 
   const generatePaymentHistoryPDF = (payments: PaymentRecord[]) => {
     const pdf = new jsPDF();
-    
+
     let yPosition = 20;
 
     // Header
@@ -294,9 +332,16 @@ export default function PaymentHistory() {
     yPosition += 6;
     pdf.text(`Total Records: ${payments.length}`, 20, yPosition);
     yPosition += 6;
-    
-    const totalAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
-    pdf.text(`Total Amount: Rs. ${totalAmount.toLocaleString()}`, 20, yPosition);
+
+    const totalAmount = payments.reduce(
+      (sum, payment) => sum + payment.amount,
+      0
+    );
+    pdf.text(
+      `Total Amount: Rs. ${totalAmount.toLocaleString()}`,
+      20,
+      yPosition
+    );
     yPosition += 15;
 
     // Table Headers
@@ -324,28 +369,32 @@ export default function PaymentHistory() {
         yPosition = 20;
       }
 
-      const patientName = payment.patient?.userId?.firstName && payment.patient?.userId?.lastName 
-        ? `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}` 
-        : "N/A";
-      
-      const doctorName = payment.doctor?.userId?.firstName && payment.doctor?.userId?.lastName 
-        ? `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}` 
-        : "N/A";
-      
-      const appointmentDate = payment.appointment?.availability?.date 
+      const patientName =
+        payment.patient?.userId?.firstName && payment.patient?.userId?.lastName
+          ? `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}`
+          : "N/A";
+
+      const doctorName =
+        payment.doctor?.userId?.firstName && payment.doctor?.userId?.lastName
+          ? `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}`
+          : "N/A";
+
+      const appointmentDate = payment.appointment?.availability?.date
         ? formatDate(payment.appointment.availability.date)
         : "N/A";
 
       // Truncate long text to fit
-      const truncateText = (text: string, maxLength: number) => 
-        text.length > maxLength ? text.substring(0, maxLength - 3) + "..." : text;
+      const truncateText = (text: string, maxLength: number) =>
+        text.length > maxLength
+          ? text.substring(0, maxLength - 3) + "..."
+          : text;
 
       pdf.text(truncateText(payment.invoiceNumber, 15), 20, yPosition);
       pdf.text(truncateText(appointmentDate, 12), 60, yPosition);
       pdf.text(truncateText(patientName, 15), 95, yPosition);
       pdf.text(truncateText(doctorName, 15), 135, yPosition);
       pdf.text(`Rs. ${payment.amount.toLocaleString()}`, 175, yPosition);
-      
+
       yPosition += 5;
     });
 
@@ -353,13 +402,15 @@ export default function PaymentHistory() {
     yPosition += 10;
     pdf.setFontSize(10);
     pdf.setFont("helvetica", "italic");
-    pdf.text("Generated by Smart Healthcare System", 105, yPosition, { align: "center" });
+    pdf.text("Generated by Smart Healthcare System", 105, yPosition, {
+      align: "center",
+    });
 
     // Add border to first page
     pdf.rect(10, 10, 190, 277);
 
     // Download the PDF
-    pdf.save(`payment-history-${new Date().toISOString().split('T')[0]}.pdf`);
+    pdf.save(`payment-history-${new Date().toISOString().split("T")[0]}.pdf`);
   };
 
   if (loading) {
@@ -436,7 +487,7 @@ export default function PaymentHistory() {
           </div>
 
           {/* Export Button */}
-          <button 
+          <button
             onClick={handleExportAllReceipts}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center"
             disabled={filteredPayments.length === 0}
@@ -606,8 +657,9 @@ export default function PaymentHistory() {
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">
                 {
-                  filteredPayments.filter((p) => p.status === "COMPLETED")
-                    .length
+                  filteredPayments.filter(
+                    (p) => p.status === "COMPLETED" || p.status === "PAID"
+                  ).length
                 }
               </div>
               <div className="text-sm text-slate-600">Completed</div>
