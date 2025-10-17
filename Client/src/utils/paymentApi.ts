@@ -3,16 +3,11 @@ const BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:3002/api";
 
 export interface PaymentDetails {
-  id: string;
-  hospitalBranch: string;
-  patientName: string;
-  patientId: string;
-  appointmentDate: string;
-  appointmentTime: string;
-  doctor: string;
-  specialization: string;
+  _id: string;
+  id?: string; // For backward compatibility
   invoiceNumber: string;
-  totalAmount: number;
+  amount: number;
+  currency: string;
   status:
     | "PENDING"
     | "PAID"
@@ -21,33 +16,91 @@ export interface PaymentDetails {
     | "FAILED"
     | "CANCELLED"
     | "REFUNDED";
+  paymentMethod: "CARD" | "INSURANCE" | "HOSPITAL" | "ONLINE";
   dueDate: string;
-  stripeSessionId?: string;
-  transactionId?: string;
   paidAt?: string;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  transactionId?: string;
+  appointment: {
+    _id: string;
+    availability: {
+      date: string;
+      timeSlot: string;
+      location: string;
+    };
+  };
+  patient: {
+    _id: string;
+    userId: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+  doctor: {
+    _id: string;
+    specialization: string;
+    userId: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PaymentRecord {
-  id: string;
+  _id: string;
+  id?: string; // For backward compatibility
   invoiceNumber: string;
-  appointmentDate: string;
-  doctor: string;
-  specialization: string;
   amount: number;
-  paymentMethod: "CARD" | "INSURANCE" | "HOSPITAL" | "ONLINE";
-  paymentDate: string;
+  currency: string;
   status:
-    | "COMPLETED"
-    | "REFUNDED"
     | "PENDING"
+    | "PAID"
+    | "OVERDUE"
     | "PROCESSING"
     | "FAILED"
-    | "CANCELLED";
-  transactionId?: string;
-  hospitalBranch: string;
+    | "CANCELLED"
+    | "REFUNDED"
+    | "COMPLETED";
+  paymentMethod: "CARD" | "INSURANCE" | "HOSPITAL" | "ONLINE";
+  dueDate: string;
   paidAt?: string;
   refundedAt?: string;
   refundAmount?: number;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  transactionId?: string;
+  appointment: {
+    _id: string;
+    availability: {
+      date: string;
+      timeSlot: string;
+      location: string;
+    };
+  };
+  patient: {
+    _id: string;
+    userId: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+  doctor: {
+    _id: string;
+    specialization: string;
+    userId: {
+      _id: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface PaymentSummary {

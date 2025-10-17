@@ -16,6 +16,7 @@ import {
   type PaymentDetails,
   type PaymentSummary,
 } from "@/utils/paymentApi";
+import PaymentSuccessModal from "@/components/PaymentSuccessModal";
 
 export default function OutstandingPayments() {
   const [loading, setLoading] = useState(true);
@@ -30,6 +31,10 @@ export default function OutstandingPayments() {
     totalPaid: 0,
     completedPayments: 0,
   });
+
+  // Payment Success Modal State
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successPaymentId, setSuccessPaymentId] = useState<string>("");
 
   // Fetch payment data from API
   useEffect(() => {
@@ -84,11 +89,11 @@ export default function OutstandingPayments() {
       // For now, process the first payment (in a real app, you might want to process all at once)
       const payment = paymentDetails[0];
 
-      const successUrl = `${window.location.origin}/patient/payments?payment_success=true&payment_id=${payment.id}`;
-      const cancelUrl = `${window.location.origin}/patient/payments?payment_cancelled=true&payment_id=${payment.id}`;
+      const successUrl = `${window.location.origin}/patient/payments?payment_success=true&payment_id=${payment._id}`;
+      const cancelUrl = `${window.location.origin}/patient/payments?payment_cancelled=true&payment_id=${payment._id}`;
 
       const checkoutData = await createStripeCheckout(
-        payment.id,
+        payment._id,
         successUrl,
         cancelUrl
       );
@@ -108,9 +113,17 @@ export default function OutstandingPayments() {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentSuccess = urlParams.get("payment_success");
     const paymentCancelled = urlParams.get("payment_cancelled");
+    const paymentId = urlParams.get("payment_id");
     const sessionId = urlParams.get("session_id");
 
-    if (paymentSuccess && sessionId) {
+    if (paymentSuccess && paymentId) {
+      // Show success modal with payment ID
+      setSuccessPaymentId(paymentId);
+      setShowSuccessModal(true);
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (paymentSuccess && sessionId) {
+      // Legacy handling for session_id
       handlePaymentSuccess(sessionId);
     } else if (paymentCancelled) {
       toast.info("Payment was cancelled");
@@ -144,6 +157,25 @@ export default function OutstandingPayments() {
     } finally {
       setProcessing(false);
     }
+  };
+
+  const handleCloseSuccessModal = () => {
+    setShowSuccessModal(false);
+    setSuccessPaymentId("");
+    // Refresh payment data after modal closes
+    const fetchPaymentData = async () => {
+      try {
+        const [payments, summaryData] = await Promise.all([
+          getOutstandingPayments(),
+          getPaymentSummary(),
+        ]);
+        setPaymentDetails(payments);
+        setSummary(summaryData);
+      } catch {
+        toast.error("Failed to refresh payment data");
+      }
+    };
+    fetchPaymentData();
   };
 
   const getStatusColor = (status: string) => {
@@ -220,37 +252,49 @@ export default function OutstandingPayments() {
         </div>
       </div>
 
-      {/* Outstanding Payment Details */}
+      {/* Payment Details */}
       <div className="bg-white rounded-xl shadow-sm border mb-6">
         <div className="p-6 border-b">
           <h2 className="text-xl font-semibold text-slate-800">
-            Outstanding Payment Details
+            Payment Details
           </h2>
         </div>
 
         <div className="p-6">
           {paymentDetails.map((payment) => (
-            <div key={payment.id} className="mb-6 last:mb-0">
+            <div key={payment._id || payment.id} className="mb-6 last:mb-0">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div className="flex justify-between">
                     <span className="text-slate-600">Hospital Branch:</span>
                     <span className="font-medium">
-                      {payment.hospitalBranch}
+                      {payment.appointment?.availability?.location || "N/A"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Patient Name:</span>
-                    <span className="font-medium">{payment.patientName}</span>
+                    <span className="font-medium">
+                      {payment.patient?.userId?.firstName &&
+                      payment.patient?.userId?.lastName
+                        ? `${payment.patient.userId.firstName} ${payment.patient.userId.lastName}`
+                        : "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Patient ID:</span>
-                    <span className="font-medium">{payment.patientId}</span>
+                    <span className="font-medium">
+                      {payment.patient?.userId?._id || "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Appointment Date:</span>
                     <span className="font-medium">
-                      {payment.appointmentDate} - {payment.appointmentTime}
+                      {payment.appointment?.availability?.date
+                        ? new Date(
+                            payment.appointment.availability.date
+                          ).toLocaleDateString()
+                        : "N/A"}{" "}
+                      - {payment.appointment?.availability?.timeSlot || "N/A"}
                     </span>
                   </div>
                 </div>
@@ -259,12 +303,18 @@ export default function OutstandingPayments() {
                   <div className="flex justify-between">
                     <span className="text-slate-600">Doctor:</span>
                     <span className="font-medium">
-                      {payment.doctor} - {payment.specialization}
+                      {payment.doctor?.userId?.firstName &&
+                      payment.doctor?.userId?.lastName
+                        ? `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}`
+                        : "N/A"}{" "}
+                      - {payment.doctor?.specialization || "N/A"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Invoice Number:</span>
-                    <span className="font-medium">{payment.invoiceNumber}</span>
+                    <span className="font-medium">
+                      {payment.invoiceNumber || "N/A"}
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-600">Status:</span>
@@ -279,7 +329,7 @@ export default function OutstandingPayments() {
                   <div className="flex justify-between">
                     <span className="text-slate-600">Total Amount:</span>
                     <span className="font-bold text-blue-600 text-lg">
-                      Rs. {payment.totalAmount.toLocaleString()}
+                      Rs. {payment.amount?.toLocaleString() || "0"}
                     </span>
                   </div>
                 </div>
@@ -427,6 +477,13 @@ export default function OutstandingPayments() {
           )}
         </button>
       </div>
+
+      {/* Payment Success Modal */}
+      <PaymentSuccessModal
+        isOpen={showSuccessModal}
+        onClose={handleCloseSuccessModal}
+        paymentId={successPaymentId}
+      />
     </div>
   );
 }

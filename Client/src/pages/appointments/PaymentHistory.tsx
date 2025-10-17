@@ -14,7 +14,6 @@ import {
 import {
   getPaymentHistory,
   downloadReceipt,
-  processRefund,
   type PaymentRecord,
 } from "@/utils/paymentApi";
 
@@ -32,9 +31,11 @@ export default function PaymentHistory() {
       try {
         setLoading(true);
         const paymentData = await getPaymentHistory();
-        setPayments(paymentData);
+        // Extract payments array from the response
+        setPayments(paymentData.payments || []);
       } catch {
         toast.error("Failed to load payment history");
+        setPayments([]); // Set empty array on error
       } finally {
         setLoading(false);
       }
@@ -54,10 +55,14 @@ export default function PaymentHistory() {
           payment.invoiceNumber
             .toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
-          payment.doctor.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          payment.specialization
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
+          (payment.doctor?.userId?.firstName &&
+            `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}`
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())) ||
+          (payment.doctor?.specialization &&
+            payment.doctor.specialization
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -90,7 +95,7 @@ export default function PaymentHistory() {
       }
 
       filtered = filtered.filter(
-        (payment) => new Date(payment.paymentDate) >= filterDate
+        (payment) => new Date(payment.paidAt || payment.createdAt) >= filterDate
       );
     }
 
@@ -280,7 +285,10 @@ export default function PaymentHistory() {
                 </tr>
               ) : (
                 filteredPayments.map((payment) => (
-                  <tr key={payment.id} className="hover:bg-slate-50">
+                  <tr
+                    key={payment._id || payment.id}
+                    className="hover:bg-slate-50"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <FaReceipt className="text-slate-400 mr-2" />
@@ -291,18 +299,23 @@ export default function PaymentHistory() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-slate-900">
-                        {formatDate(payment.appointmentDate)}
+                        {payment.appointment?.availability?.date
+                          ? formatDate(payment.appointment.availability.date)
+                          : "N/A"}
                       </div>
                       <div className="text-sm text-slate-500">
-                        {payment.hospitalBranch}
+                        {payment.appointment?.availability?.location || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-slate-900">
-                        {payment.doctor}
+                        {payment.doctor?.userId?.firstName &&
+                        payment.doctor?.userId?.lastName
+                          ? `${payment.doctor.userId.firstName} ${payment.doctor.userId.lastName}`
+                          : "N/A"}
                       </div>
                       <div className="text-sm text-slate-500">
-                        {payment.specialization}
+                        {payment.doctor?.specialization || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -325,7 +338,9 @@ export default function PaymentHistory() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-slate-900">
-                        {formatDate(payment.paymentDate)}
+                        {payment.paidAt
+                          ? formatDate(payment.paidAt)
+                          : formatDate(payment.createdAt)}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
