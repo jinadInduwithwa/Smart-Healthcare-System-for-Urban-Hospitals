@@ -861,6 +861,7 @@ export class ReportController {
         data: { patientCheckIns: mergedData },
       });
     } catch (error) {
+      const { startDate, endDate } = req.query;
       logger.error("Error generating patient check-in report:", {
         error: error.message,
         startDate,
