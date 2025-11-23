@@ -12,7 +12,6 @@
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,
-    "jsx": "react-jsx",
 
     /* Linting */
     "strict": true,
@@ -20,11 +19,15 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
 
+    /* JSX support */
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+
+    /* Path aliases */
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
+      "@/*": ["src/*"]
     }
   },
   "include": ["src"]

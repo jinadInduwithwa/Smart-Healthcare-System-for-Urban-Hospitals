@@ -1,0 +1,52 @@
+[
+  {
+    "name": "Complete Blood Count",
+    "description": "A common blood test that evaluates overall health and detects a wide range of disorders.",
+    "relatedDiagnosisCodes": ["A00", "A01"]
+  },
+  {
+    "name": "Blood Culture",
+    "description": "A test to detect bacteria or other organisms in the blood.",
+    "relatedDiagnosisCodes": ["A00", "A01"]
+  },
+  {
+    "name": "Stool Culture",
+    "description": "A test to detect the presence of disease-causing bacteria, viruses, or parasites in the stool.",
+    "relatedDiagnosisCodes": ["A00"]
+  },
+  {
+    "name": "Widal Test",
+    "description": "A serological test used to diagnose enteric fever or typhoid fever.",
+    "relatedDiagnosisCodes": ["A01"]
+  },
+  {
+    "name": "Chest X-ray",
+    "description": "An imaging test to view the structures inside the chest, particularly the lungs.",
+    "relatedDiagnosisCodes": ["J45"]
+  },
+  {
+    "name": "Pulmonary Function Test",
+    "description": "A test to measure how well the lungs are functioning.",
+    "relatedDiagnosisCodes": ["J45"]
+  },
+  {
+    "name": "Electrocardiogram",
+    "description": "A test that records the electrical activity of the heart.",
+    "relatedDiagnosisCodes": ["A01.02"]
+  },
+  {
+    "name": "Urinalysis",
+    "description": "A test of urine to detect and manage various disorders.",
+    "relatedDiagnosisCodes": []
+  },
+  {
+    "name": "Liver Function Test",
+    "description": "A group of blood tests that give information about the state of a patient's liver.",
+    "relatedDiagnosisCodes": []
+  },
+  {
+    "name": "Kidney Function Test",
+    "description": "A test to check how well the kidneys are working.",
+    "relatedDiagnosisCodes": []
+  }
+]

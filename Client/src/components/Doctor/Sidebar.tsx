@@ -33,7 +33,7 @@ const menuItems: MenuItem[] = [
     title: "Appointments",
     icon: <FiCalendar />,
     subItems: [
-      { path: "/doctor-dashboard/appointments/schedule", title: "Schedule" },
+      { path: "/doctor-dashboard/appoinment/scheduled", title: "Schedule" },
       { path: "/doctor-dashboard/appointments/history", title: "History" },
     ],
   },
@@ -43,7 +43,7 @@ const menuItems: MenuItem[] = [
     icon: <FiBook />,
     subItems: [
       { path: "/doctor-dashboard/patient-records/all", title: "All Records" },
-      { path: "/doctor-dashboard/patient-records/add", title: "Add Record" },
+      { path: "/doctor-dashboard/patient-records/card", title: "Search Card" },
     ],
   },
   {

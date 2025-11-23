@@ -1,0 +1,62 @@
+[
+  {
+    "id": "DR001",
+    "name": "Paracetamol",
+    "dosageForms": ["500 mg", "650 mg"],
+    "frequencyOptions": ["Once daily", "Twice daily", "Thrice daily"]
+  },
+  {
+    "id": "DR002",
+    "name": "Doxycycline",
+    "dosageForms": ["100 mg"],
+    "frequencyOptions": ["Once daily", "Twice daily"]
+  },
+  {
+    "id": "DR003",
+    "name": "Amoxicillin",
+    "dosageForms": ["250 mg", "500 mg"],
+    "frequencyOptions": ["Twice daily", "Thrice daily"]
+  },
+  {
+    "id": "DR004",
+    "name": "Ibuprofen",
+    "dosageForms": ["200 mg", "400 mg", "600 mg"],
+    "frequencyOptions": ["Once daily", "Twice daily", "Thrice daily", "As needed"]
+  },
+  {
+    "id": "DR005",
+    "name": "Omeprazole",
+    "dosageForms": ["20 mg", "40 mg"],
+    "frequencyOptions": ["Once daily", "Twice daily"]
+  },
+  {
+    "id": "DR006",
+    "name": "Metformin",
+    "dosageForms": ["500 mg", "850 mg", "1000 mg"],
+    "frequencyOptions": ["Once daily", "Twice daily", "Thrice daily"]
+  },
+  {
+    "id": "DR007",
+    "name": "Atorvastatin",
+    "dosageForms": ["10 mg", "20 mg", "40 mg"],
+    "frequencyOptions": ["Once daily"]
+  },
+  {
+    "id": "DR008",
+    "name": "Losartan",
+    "dosageForms": ["25 mg", "50 mg", "100 mg"],
+    "frequencyOptions": ["Once daily", "Twice daily"]
+  },
+  {
+    "id": "DR009",
+    "name": "Amlodipine",
+    "dosageForms": ["5 mg", "10 mg"],
+    "frequencyOptions": ["Once daily"]
+  },
+  {
+    "id": "DR010",
+    "name": "Levothyroxine",
+    "dosageForms": ["25 mcg", "50 mcg", "75 mcg", "100 mcg"],
+    "frequencyOptions": ["Once daily"]
+  }
+]

@@ -1,12 +1,13 @@
 import jwt from "jsonwebtoken";
 import { User } from "../models/user.model.js";
+import { Doctor } from "../models/doctor.model.js";
 import logger from "../utils/logger.js";
 
 export const auth = async (req, res, next) => {
   try {
     // Get token from header or cookie
     const token =
-      req.header("Authorization")?.replace("Bearer ", "") || req.cookies.token;
+      req.header("Authorization")?.replace("Bearer ", "") || req.cookies?.token;
 
     if (!token) {
       return res
@@ -25,6 +26,15 @@ export const auth = async (req, res, next) => {
 
     // Attach user to request
     req.user = user;
+
+    // If user is a doctor, also populate doctor information
+    if (user.role === "DOCTOR") {
+      const doctor = await Doctor.findOne({ userId: user._id });
+      if (doctor) {
+        req.user.doctor = doctor;
+      }
+    }
+
     next();
   } catch (error) {
     logger.error("Authentication error:", error);
